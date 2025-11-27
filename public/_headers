@@ -1,0 +1,3 @@
+/*
+  X-Frame-Options: ALLOWALL
+  Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.googleapis.com https://ssl.gstatic.com https://www.gstatic.com data: blob:; frame-src 'self' https://accounts.google.com https://*.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com; connect-src 'self' https://*.googleapis.com https://accounts.google.com;

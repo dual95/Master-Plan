@@ -1,0 +1,289 @@
+import { useMemo, useCallback, useState } from 'react';
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { es } from 'date-fns/locale';
+import type { CalendarEvent } from '../../types';
+import { useApp, useAppActions } from '../../hooks/useApp';
+import { EventModal } from '../../components/EventModal';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+import './MasterCalendar.css';
+
+// Configurar localizador para date-fns
+const locales = {
+  'es': es,
+};
+
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
+
+// Crear componente del calendario con drag & drop
+const DnDCalendar = withDragAndDrop(Calendar);
+
+interface MasterCalendarProps {
+  height?: number;
+}
+
+export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
+  const { state } = useApp();
+  const { setError, updateEvent, addEvent, deleteEvent } = useAppActions();
+  
+  // Estado para el modal
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Convertir eventos para react-big-calendar
+  const calendarEvents = useMemo(() => {
+    return state.events.map(event => ({
+      ...event,
+      start: new Date(event.start),
+      end: new Date(event.end),
+    }));
+  }, [state.events]);
+
+  // Manejo de selección de eventos
+  const handleSelectEvent = useCallback((event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  }, []);
+
+  // Handlers del modal
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+  }, []);
+
+  const handleSaveEvent = useCallback((event: CalendarEvent) => {
+    try {
+      if (selectedEvent) {
+        // Actualizar evento existente
+        updateEvent(event);
+        console.log('✅ Evento actualizado:', event.title);
+      } else {
+        // Crear nuevo evento
+        addEvent(event);
+        console.log('✅ Evento creado:', event.title);
+      }
+    } catch (error) {
+      console.error('❌ Error al guardar evento:', error);
+      setError('Error al guardar el evento');
+    }
+  }, [selectedEvent, updateEvent, addEvent, setError]);
+
+  const handleDeleteEvent = useCallback((eventId: string) => {
+    try {
+      deleteEvent(eventId);
+      console.log('✅ Evento eliminado');
+    } catch (error) {
+      console.error('❌ Error al eliminar evento:', error);
+      setError('Error al eliminar el evento');
+    }
+  }, [deleteEvent, setError]);
+
+  // Manejar creación de nuevo evento con doble clic
+  const handleSelectSlot = useCallback((slotInfo: any) => {
+    const newEvent: CalendarEvent = {
+      id: '',
+      title: '',
+      description: '',
+      start: slotInfo.start.toISOString(),
+      end: slotInfo.end.toISOString(),
+      priority: 'medium',
+      status: 'pending',
+      category: '',
+      assignee: ''
+    };
+    setSelectedEvent(null); // Null indica nuevo evento
+    setIsModalOpen(true);
+  }, []);
+
+  // Handlers para drag & drop
+  const handleEventDrop = useCallback(({ event, start, end }: { 
+    event: CalendarEvent; 
+    start: Date; 
+    end: Date; 
+  }) => {
+    try {
+      console.log('🔄 Moviendo evento:', { event: event.title, start, end });
+      
+      const updatedEvent = {
+        ...event,
+        start: start.toISOString(),
+        end: end.toISOString(),
+      };
+      
+      updateEvent(updatedEvent);
+      console.log('✅ Evento actualizado exitosamente');
+    } catch (error) {
+      console.error('❌ Error al mover evento:', error);
+      setError('Error al actualizar la posición del evento');
+    }
+  }, [updateEvent, setError]);
+
+  const handleEventResize = useCallback(({ event, start, end }: { 
+    event: CalendarEvent; 
+    start: Date; 
+    end: Date; 
+  }) => {
+    try {
+      console.log('🔄 Redimensionando evento:', { event: event.title, start, end });
+      
+      const updatedEvent = {
+        ...event,
+        start: start.toISOString(),
+        end: end.toISOString(),
+      };
+      
+      updateEvent(updatedEvent);
+      console.log('✅ Evento redimensionado exitosamente');
+    } catch (error) {
+      console.error('❌ Error al redimensionar evento:', error);
+      setError('Error al redimensionar el evento');
+    }
+  }, [updateEvent, setError]);
+
+  // Personalizar el estilo de los eventos según su prioridad
+  const eventStyleGetter = (event: CalendarEvent) => {
+    let backgroundColor = '#3174ad';
+    
+    switch (event.priority) {
+      case 'high':
+        backgroundColor = '#d32f2f';
+        break;
+      case 'medium':
+        backgroundColor = '#f57c00';
+        break;
+      case 'low':
+        backgroundColor = '#388e3c';
+        break;
+      default:
+        backgroundColor = event.color || '#3174ad';
+    }
+
+    const style = {
+      backgroundColor,
+      borderRadius: '5px',
+      opacity: event.status === 'completed' ? 0.6 : 1,
+      color: 'white',
+      border: '0px',
+      display: 'block',
+    };
+
+    return { style };
+  };
+
+  // Componente personalizado para mostrar eventos
+  const EventComponent = ({ event }: { event: CalendarEvent }) => (
+    <div className="custom-event">
+      <strong>{event.title}</strong>
+      {event.assignedTo && <div className="event-assignee">👤 {event.assignedTo}</div>}
+      {event.category && <div className="event-category">🏷️ {event.category}</div>}
+    </div>
+  );
+
+  if (state.isLoading) {
+    return (
+      <div className="calendar-loading">
+        <div className="loading-spinner"></div>
+        <p>Cargando calendario...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="master-calendar-container">
+      <div className="calendar-header">
+        <div className="header-top">
+          <h2>Master Plan - Calendario</h2>
+          <button 
+            className="new-event-button"
+            onClick={() => {
+              setSelectedEvent(null);
+              setIsModalOpen(true);
+            }}
+          >
+            ➕ Nuevo Evento
+          </button>
+        </div>
+        <div className="calendar-stats">
+          <span className="stat">
+            Total de eventos: <strong>{state.events.length}</strong>
+          </span>
+          <span className="stat">
+            Completados: <strong>
+              {state.events.filter(e => e.status === 'completed').length}
+            </strong>
+          </span>
+          <span className="stat">
+            Pendientes: <strong>
+              {state.events.filter(e => e.status === 'pending').length}
+            </strong>
+          </span>
+        </div>
+      </div>
+
+      <DnDCalendar
+        localizer={localizer}
+        events={calendarEvents}
+        startAccessor="start"
+        endAccessor="end"
+        style={{ height }}
+        onSelectEvent={handleSelectEvent}
+        selectable
+        eventPropGetter={eventStyleGetter}
+        components={{
+          event: EventComponent,
+        }}
+        messages={{
+          next: 'Siguiente',
+          previous: 'Anterior',
+          today: 'Hoy',
+          month: 'Mes',
+          week: 'Semana',
+          day: 'Día',
+          agenda: 'Agenda',
+          date: 'Fecha',
+          time: 'Hora',
+          event: 'Evento',
+          noEventsInRange: 'No hay eventos en este rango',
+        }}
+        formats={{
+          dateFormat: 'dd',
+          dayFormat: (date: Date) => 
+            format(date, 'dd/MM', { locale: es }),
+          dayHeaderFormat: (date: Date) => 
+            format(date, 'cccc d/M', { locale: es }),
+          monthHeaderFormat: (date: Date) => 
+            format(date, 'MMMM yyyy', { locale: es }),
+        }}
+        onEventDrop={handleEventDrop}
+        onEventResize={handleEventResize}
+        onSelectSlot={handleSelectSlot}
+        resizable
+        draggableAccessor={() => true}
+      />
+
+      {state.error && (
+        <div className="calendar-error">
+          <p>❌ {state.error}</p>
+          <button onClick={() => setError(null)}>Cerrar</button>
+        </div>
+      )}
+
+      {/* Modal para editar/crear eventos */}
+      <EventModal
+        event={selectedEvent}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveEvent}
+        onDelete={handleDeleteEvent}
+      />
+    </div>
+  );
+}
