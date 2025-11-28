@@ -109,7 +109,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
     'CTD PEDIDO': Number(getColumnValue(['CTD PEDIDO', 'CANTIDAD', 'QTY', 'QUANTITY'], 'CTD PEDIDO') || 0),
     PLIEGOS: Number(getColumnValue(['PLIEGOS', 'SHEETS', 'HOJAS'], 'PLIEGOS') || 0),
     'MC FECHAS': String(getColumnValue(['MC FECHAS', 'FECHAS'], 'MC FECHAS') || ''),
-    IMPRESION: String(row.IMPRESION || row.IMPRESIÓN || '').toUpperCase() === 'TRUE',
+    IMPRESION: String(row.IMPRESION || row.IMPRESIÓN || row['IMPRESIÓN'] || '').toUpperCase() === 'TRUE',
     BARNIZ: String(row.BARNIZ || '').toUpperCase() === 'TRUE',
     LAMINADO: String(row.LAMINADO || '').toUpperCase() === 'TRUE',
     ESTAMPADO: String(row.ESTAMPADO || '').toUpperCase() === 'TRUE',
@@ -166,6 +166,21 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
       values: Object.values(row).slice(0, 5), // Solo los primeros 5 valores
       PO: row.PO || row.PEDIDO,
       PROYECTO: row.PROYECTO,
+      PROJECT: row.PROJECT,
+      // 🚨 DEBUGGING CRÍTICO DE PROCESOS:
+      procesosRaw: {
+        'IMPRESION': row.IMPRESION,
+        'IMPRESIÓN': row.IMPRESIÓN,
+        'BARNIZ': row.BARNIZ,
+        'LAMINADO': row.LAMINADO,
+        'TROQUELADO': row.TROQUELADO,
+        'ESTAMPADO': row.ESTAMPADO,
+        'REALZADO': row.REALZADO
+      },
+      todasLasColumnasDeProcesos: Object.entries(row).filter(([key, value]) => 
+        key.includes('IMPRES') || key.includes('BARNIZ') || key.includes('TROQUELADO') || 
+        key.includes('LAMINADO') || key.includes('ESTAMPADO') || key.includes('REALZADO')
+      ),
       hasValues: Object.values(row).some(v => v !== null && v !== undefined && String(v).trim() !== '')
     });
   });
@@ -193,6 +208,21 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
   
   // Procesos disponibles en el Excel
   const processColumns = ['IMPRESION', 'BARNIZ', 'LAMINADO', 'ESTAMPADO', 'REALZADO', 'TROQUELADO'];
+  
+  // Mapear nombres de columnas de procesos con tildes
+  const getProcessValue = (row: any, processName: string): boolean => {
+    const variants = [
+      processName,
+      processName === 'IMPRESION' ? 'IMPRESIÓN' : processName
+    ];
+    
+    for (const variant of variants) {
+      if (row[variant] !== undefined) {
+        return String(row[variant]).toUpperCase() === 'TRUE';
+      }
+    }
+    return false;
+  };
   
   validRows.forEach((row, index) => {
     const typedRow = convertToProductionRow(row, processedCount);
@@ -223,7 +253,15 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
           IMPRESION: typedRow.IMPRESION,
           BARNIZ: typedRow.BARNIZ,
           LAMINADO: typedRow.LAMINADO,
+          ESTAMPADO: typedRow.ESTAMPADO,
+          REALZADO: typedRow.REALZADO,
           TROQUELADO: typedRow.TROQUELADO
+        },
+        procesosOriginales: {
+          'IMPRESION (original)': row.IMPRESION,
+          'IMPRESIÓN (con tilde)': row.IMPRESIÓN || row['IMPRESIÓN'],
+          'BARNIZ': row.BARNIZ,
+          'TROQUELADO': row.TROQUELADO
         }
       });
     }
@@ -247,9 +285,27 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
 
     items.push(productionItem);
 
-    // Generar tareas para cada proceso requerido
-    const productTasks = generateTasksForProduct(productionItem, typedRow, processColumns);
-    tasks.push(...productTasks);
+    // 🚨 DETECTAR SI LOS PROCESOS ESTÁN VACÍOS Y USAR FALLBACK
+    const hasAnyProcess = processColumns.some(processType => {
+      const processValue = processType === 'IMPRESION' 
+        ? (row.IMPRESION || row.IMPRESIÓN || row['IMPRESIÓN'])
+        : row[processType as keyof ProductionSpreadsheetRow];
+      return isProcessRequired(processValue);
+    });
+
+    console.log(`🔍 Producto ${productionItem.pedido}: hasAnyProcess=${hasAnyProcess}, material=${productionItem.material}`);
+
+    if (!hasAnyProcess) {
+      console.log(`⚠️ No se encontraron procesos definidos para ${productionItem.pedido}. Usando procesos automáticos por material: ${productionItem.material}`);
+      
+      // USAR PROCESOS AUTOMÁTICOS BASADOS EN MATERIAL
+      const productTasks = generateAutomaticTasksForProduct(productionItem, processColumns);
+      tasks.push(...productTasks);
+    } else {
+      // Generar tareas para cada proceso requerido (método original)
+      const productTasks = generateTasksForProduct(productionItem, typedRow, processColumns);
+      tasks.push(...productTasks);
+    }
   });
 
   // Log de resumen final
@@ -267,6 +323,143 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
 }
 
 /**
+ * Genera tareas automáticas cuando no se detectan procesos en el Excel
+ */
+function generateAutomaticTasksForProduct(
+  item: ProductionItem, 
+  processColumns: string[]
+): ProductionTask[] {
+  const tasks: ProductionTask[] = [];
+  let previousTaskId: string | null = null;
+  
+  console.log(`🤖 Generando procesos automáticos para ${item.pedido} (${item.material})`);
+  
+  // Definir procesos automáticos según material
+  const automaticProcesses = getAutomaticProcessesByMaterial(item.material);
+  
+  automaticProcesses.forEach((processType, processIndex) => {
+    const process: ProductionProcess = {
+      id: processType.toLowerCase(),
+      name: processType,
+      duration: estimateProcessDuration(processType.toLowerCase(), item.pliegos, item.quantity),
+      sequence: processIndex + 1,
+      dependencies: previousTaskId ? [previousTaskId] : [],
+      machine: getDefaultMachineForProcess(processType)
+    };
+
+    const taskId = `${item.pedido}-${processType}-${item.pos}-${Date.now()}-${processIndex}`;
+    
+    const task: ProductionTask = {
+      id: taskId,
+      title: `${processType}: ${item.proyecto}`,
+      start: new Date(),
+      end: new Date(Date.now() + process.duration * 60 * 60 * 1000),
+      description: `Pedido: ${item.pedido}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[PROCESO AUTOMÁTICO]`,
+      priority: determineTaskPriority(item.fechaEstimacion),
+      status: 'pending',
+      category: processType,
+      
+      // Datos específicos de producción
+      productId: item.id,
+      pedido: item.pedido,
+      processType: processType,
+      duration: process.duration,
+      quantity: item.quantity,
+      dependencies: process.dependencies,
+      machine: process.machine || 'Sin asignar',
+      
+      // Datos extendidos para ProductionTask
+      productionItem: item,
+      process: process,
+      estimatedHours: process.duration,
+      planta: 'P3',
+      sequence: process.sequence,
+      
+      // Datos adicionales del Excel
+      pos: item.pos,
+      material: item.material,
+      pliegos: item.pliegos,
+      proyecto: item.proyecto
+    };
+
+    tasks.push(task);
+    previousTaskId = taskId;
+    
+    console.log(`  ✅ Proceso automático agregado: ${processType} (${process.duration}h)`);
+  });
+
+  // Agregar tarea de ensamblaje si tiene procesos previos
+  if (tasks.length > 0) {
+    const ensambleProcess: ProductionProcess = {
+      id: 'ensamblaje',
+      name: 'ENSAMBLAJE',
+      duration: Math.ceil(item.quantity / 1000), // 1 hora por cada 1000 unidades
+      sequence: tasks.length + 1,
+      dependencies: tasks.map(t => t.id),
+      machine: 'ENSAMBLAJE_01'
+    };
+    
+    const ensambleTaskId = `${item.pedido}-ENSAMBLAJE-${item.pos}-${Date.now()}`;
+      
+    const ensambleTask: ProductionTask = {
+      id: ensambleTaskId,
+      title: `ENSAMBLAJE: ${item.proyecto}`,
+      start: new Date(),
+      end: new Date(Date.now() + ensambleProcess.duration * 60 * 60 * 1000),
+      description: `Pedido: ${item.pedido}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[ENSAMBLAJE AUTOMÁTICO]`,
+      priority: determineTaskPriority(item.fechaEstimacion),
+      status: 'pending',
+      category: 'ENSAMBLAJE',
+      
+      // Datos específicos de producción
+      productId: item.id,
+      pedido: item.pedido,
+      processType: 'ENSAMBLAJE',
+      duration: ensambleProcess.duration,
+      quantity: item.quantity,
+      dependencies: ensambleProcess.dependencies,
+      machine: ensambleProcess.machine || 'ENSAMBLAJE_01',
+    
+      // Datos extendidos para ProductionTask
+      productionItem: item,
+      process: ensambleProcess,
+      estimatedHours: ensambleProcess.duration,
+      planta: 'P2',
+      sequence: ensambleProcess.sequence,
+      
+      // Datos adicionales del Excel
+      pos: item.pos,
+      material: item.material,
+      pliegos: item.pliegos,
+      proyecto: item.proyecto
+    };
+
+    tasks.push(ensambleTask);
+    console.log(`  ✅ Ensamblaje automático agregado: ENSAMBLAJE (${ensambleProcess.duration}h) en P2`);
+  }
+
+  return tasks;
+}
+
+/**
+ * Determina procesos automáticos según el tipo de material
+ */
+function getAutomaticProcessesByMaterial(material: string): string[] {
+  const materialUpper = material.toUpperCase();
+  
+  if (materialUpper.includes('PP')) {
+    return ['IMPRESION', 'TROQUELADO'];
+  } else if (materialUpper.includes('COUCHE')) {
+    return ['IMPRESION', 'BARNIZ', 'TROQUELADO'];
+  } else if (materialUpper.includes('CMPC')) {
+    return ['IMPRESION', 'LAMINADO', 'TROQUELADO'];
+  } else {
+    // Default para cualquier material
+    return ['IMPRESION', 'TROQUELADO'];
+  }
+}
+
+/**
  * Genera tareas de producción para un producto específico
  */
 function generateTasksForProduct(
@@ -279,7 +472,12 @@ function generateTasksForProduct(
 
   // Procesos de producción (P3)
   processColumns.forEach((processType, processIndex) => {
-    if (isProcessRequired(row[processType as keyof ProductionSpreadsheetRow])) {
+    // Usar la función helper para manejar variantes de nombres de columnas
+    const processValue = processType === 'IMPRESION' 
+      ? (row.IMPRESION || row.IMPRESIÓN || row['IMPRESIÓN'])
+      : row[processType as keyof ProductionSpreadsheetRow];
+      
+    if (isProcessRequired(processValue)) {
       const process: ProductionProcess = {
         id: processType.toLowerCase(),
         name: processType,
@@ -574,12 +772,12 @@ export function generateSampleProductionData(): ProductionPlan {
       'CTD PEDIDO': 21000,
       PLIEGOS: 1050,
       'MC FECHAS': '2025-01-01',
-      IMPRESION: 'TRUE',
-      BARNIZ: 'TRUE',
-      LAMINADO: 'FALSE',
-      ESTAMPADO: 'FALSE',
-      REALZADO: 'FALSE',
-      TROQUELADO: 'TRUE'
+      IMPRESION: true,
+      BARNIZ: true,
+      LAMINADO: false,
+      ESTAMPADO: false,
+      REALZADO: false,
+      TROQUELADO: true
     },
     {
       PEDIDO: '1402048677',
@@ -590,12 +788,12 @@ export function generateSampleProductionData(): ProductionPlan {
       'CTD PEDIDO': 39294,
       PLIEGOS: 3600,
       'MC FECHAS': '2025-01-02',
-      IMPRESION: 'TRUE',
-      BARNIZ: 'FALSE',
-      LAMINADO: 'TRUE',
-      ESTAMPADO: 'TRUE',
-      REALZADO: 'FALSE',
-      TROQUELADO: 'TRUE'
+      IMPRESION: true,
+      BARNIZ: false,
+      LAMINADO: true,
+      ESTAMPADO: true,
+      REALZADO: false,
+      TROQUELADO: true
     },
     {
       PEDIDO: '1402049207',
@@ -606,12 +804,12 @@ export function generateSampleProductionData(): ProductionPlan {
       'CTD PEDIDO': 14400,
       PLIEGOS: 1200,
       'MC FECHAS': '2025-01-03',
-      IMPRESION: 'TRUE',
-      BARNIZ: 'TRUE',
-      LAMINADO: 'FALSE',
-      ESTAMPADO: 'FALSE',
-      REALZADO: 'TRUE',
-      TROQUELADO: 'TRUE'
+      IMPRESION: true,
+      BARNIZ: true,
+      LAMINADO: false,
+      ESTAMPADO: false,
+      REALZADO: true,
+      TROQUELADO: true
     }
   ];
 

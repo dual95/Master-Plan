@@ -433,45 +433,58 @@ class GoogleDriveService {
       let headers: string[];
       
       try {
-        // Intentar método automático primero
-        const autoData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-        
-        if (autoData.length > 0 && Object.keys(autoData[0]).length > 1) {
-          // Si funciona y tiene múltiples columnas, usar este método
-          jsonData = autoData;
-          headers = Object.keys(autoData[0]);
-          console.log('✅ Método automático exitoso, headers:', headers.slice(0, 10));
-        } else {
-          throw new Error('Método automático no funcionó, probando manual');
-        }
+        // 🚨 FIX CRÍTICO: Usar método manual para evitar columnas __EMPTY
+        // El método automático de XLSX genera nombres genéricos como __EMPTY, __EMPTY_1, etc.
+        // En su lugar, usamos el método manual que nos permite usar la primera fila como headers
+        console.log('🔄 Usando método manual para evitar columnas __EMPTY...');
+        throw new Error('Forzando uso de método manual para headers correctos');
       } catch (error) {
-        console.log('⚠️ Método automático falló, usando método manual...');
+        console.log('✅ Usando método manual para headers correctos...');
         
-        // Método 2: Conversión manual con array de arrays
+        // Método 2: Conversión manual con array de arrays (FIJO)
+        // Leemos desde la columna B (índice 1) ya que A suele estar vacía
         const arrayData = XLSX.utils.sheet_to_json(worksheet, { 
-          header: 1, 
+          header: 1,  // Tratar la primera fila como array, no como headers
           defval: '',
-          raw: false 
+          raw: false,
+          range: 1 // Empezar desde la fila 2 (B2) para evitar títulos en A1
         });
         
         if (arrayData.length === 0) {
           throw new Error('No data found in Excel sheet');
         }
         
-        // La primera fila son los headers
-        headers = (arrayData[0] as string[]).map((header, index) => 
-          header && String(header).trim() !== '' ? String(header) : `Col${index + 1}`
-        );
+        console.log('🔍 Datos sin procesar (primeras 2 filas):', arrayData.slice(0, 2));
         
-        console.log('🔍 Headers manuales detectados:', headers.slice(0, 10));
+        // 🚨 FIX CRÍTICO: La primera fila contiene los headers reales
+        const rawHeaders = arrayData[0] as any[];
         
-        // Convertir el resto de las filas a objetos
-        jsonData = arrayData.slice(1).map((row: any[]) => {
+        // Procesar headers: tomar desde índice 1 (columna B) y limpiar
+        headers = rawHeaders.slice(1).map((header, index) => {
+          const cleanHeader = header && String(header).trim() !== '' ? 
+            String(header).trim().toUpperCase() : 
+            `COL${index + 2}`; // +2 porque empezamos desde B
+          return cleanHeader;
+        }).filter(h => h !== ''); // Eliminar headers vacíos
+        
+        console.log('🔍 Headers procesados desde primera fila:', headers);
+        
+        // Convertir el resto de las filas a objetos (empezar desde fila 2)
+        jsonData = arrayData.slice(1).map((row: unknown) => {
+          const rowArray = row as any[];
           const rowObject: any = {};
+          
+          // Procesar desde columna B (índice 1)
+          const dataValues = rowArray.slice(1);
+          
           headers.forEach((header, index) => {
-            rowObject[header] = row[index] || '';
+            rowObject[header] = dataValues[index] ? String(dataValues[index]) : '';
           });
+          
           return rowObject;
+        }).filter(row => {
+          // Filtrar filas completamente vacías
+          return Object.values(row).some(value => value && String(value).trim() !== '');
         });
       }
       

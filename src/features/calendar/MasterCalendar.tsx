@@ -337,17 +337,17 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
 
         {/* Calendario principal */}
         <div className="calendar-main">
-          <DnDCalendar<CalendarEvent>
+          <DnDCalendar
             localizer={localizer}
             events={calendarEvents}
-            startAccessor="start"
-            endAccessor="end"
+            startAccessor={(event: any) => event.start}
+            endAccessor={(event: any) => event.end}
             style={{ height }}
-            onSelectEvent={handleSelectEvent}
+            onSelectEvent={handleSelectEvent as any}
             selectable
-            eventPropGetter={eventStyleGetter}
+            eventPropGetter={eventStyleGetter as any}
             components={{
-              event: EventComponent,
+              event: EventComponent as any,
             }}
             messages={{
               next: 'Siguiente',
@@ -371,9 +371,9 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
               monthHeaderFormat: (date: Date) => 
                 format(date, 'MMMM yyyy', { locale: es }),
             }}
-            onEventDrop={handleEventDrop}
-            onEventResize={handleEventResize}
-            onSelectSlot={handleSelectSlot}
+            onEventDrop={handleEventDrop as any}
+            onEventResize={handleEventResize as any}
+            onSelectSlot={handleSelectSlot as any}
             resizable
             draggableAccessor={() => true}
             onNavigate={handleNavigate}
