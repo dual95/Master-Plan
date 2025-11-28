@@ -5,6 +5,7 @@ import { MasterCalendar } from './features/calendar/MasterCalendar';
 import { DriveConnect } from './features/drive/DriveConnect';
 import { LookerExport } from './features/looker/LookerExport';
 import { SampleDataLoader } from './components/SampleDataLoader';
+import { ProductionLoader } from './components/ProductionLoader';
 import './App.css';
 
 type TabType = 'calendar' | 'drive' | 'export';
@@ -20,6 +21,7 @@ function App() {
         return (
           <div className="drive-content">
             <DriveConnect />
+            <ProductionLoader />
             <SampleDataLoader />
           </div>
         );

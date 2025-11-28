@@ -125,7 +125,7 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
               <input
                 id="start"
                 type="datetime-local"
-                value={formData.start.slice(0, 16)}
+                value={typeof formData.start === 'string' ? formData.start.slice(0, 16) : formData.start.toISOString().slice(0, 16)}
                 onChange={(e) => handleChange('start', e.target.value)}
                 required
               />
@@ -136,7 +136,7 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
               <input
                 id="end"
                 type="datetime-local"
-                value={formData.end.slice(0, 16)}
+                value={typeof formData.end === 'string' ? formData.end.slice(0, 16) : formData.end.toISOString().slice(0, 16)}
                 onChange={(e) => handleChange('end', e.target.value)}
                 required
               />

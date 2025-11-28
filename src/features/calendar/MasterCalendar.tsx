@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useState } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { format, parse, startOfWeek, getDay, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { CalendarEvent } from '../../types';
 import { useApp, useAppActions } from '../../hooks/useApp';
@@ -37,6 +37,86 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
   // Estado para el modal
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Estado para el mes actual del calendario
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Función para calcular las semanas visibles en la vista del mes
+  const getVisibleWeeks = useCallback((date: Date) => {
+    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    
+    // Obtener el primer día de la semana del mes (puede ser del mes anterior)
+    const startOfFirstWeek = startOfWeek(startOfMonth, { 
+      locale: es,
+      weekStartsOn: 1 // Lunes como primer día de la semana
+    });
+    
+    // Calcular cuántas semanas necesitamos mostrar (siempre 6 filas en vista mensual)
+    const weeks = [];
+    let currentWeekStart = new Date(startOfFirstWeek);
+    
+    for (let i = 0; i < 6; i++) {
+      const weekNumber = getWeek(currentWeekStart, { 
+        locale: es,
+        weekStartsOn: 1,
+        firstWeekContainsDate: 4 // ISO 8601 - primera semana contiene el 4 de enero
+      });
+      
+      weeks.push(weekNumber);
+      
+      // Avanzar a la siguiente semana
+      currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    }
+    
+    return weeks;
+  }, []);
+
+  // Calcular las semanas visibles para el mes actual
+  const visibleWeeks = useMemo(() => getVisibleWeeks(currentDate), [currentDate, getVisibleWeeks]);
+  
+  // Obtener el número de la semana actual
+  const currentWeekNumber = useMemo(() => {
+    return getWeek(new Date(), { 
+      locale: es,
+      weekStartsOn: 1,
+      firstWeekContainsDate: 4
+    });
+  }, []);
+
+  // Handler para cuando cambia el mes/año en el calendario
+  const handleNavigate = useCallback((date: Date) => {
+    setCurrentDate(date);
+  }, []);
+
+  // Handler para navegación por número de semana
+  const handleWeekClick = useCallback((weekNumber: number) => {
+    // Calcular la fecha del primer día de esa semana
+    const year = currentDate.getFullYear();
+    
+    // Crear una fecha aproximada para esa semana
+    const januaryFirst = new Date(year, 0, 1);
+    const daysToAdd = (weekNumber - 1) * 7;
+    const weekStart = new Date(januaryFirst);
+    weekStart.setDate(januaryFirst.getDate() + daysToAdd);
+    
+    // Encontrar el lunes de esa semana
+    const mondayOfWeek = startOfWeek(weekStart, { 
+      locale: es, 
+      weekStartsOn: 1 
+    });
+    
+    setCurrentDate(mondayOfWeek);
+    console.log(`📅 Navegando a la semana ${weekNumber} del año ${year}`);
+    
+    // Mostrar feedback visual temporal
+    const weekElement = document.querySelector(`[data-week="${weekNumber}"]`);
+    if (weekElement) {
+      weekElement.classList.add('clicked');
+      setTimeout(() => {
+        weekElement.classList.remove('clicked');
+      }, 300);
+    }
+  }, [currentDate]);
 
   // Convertir eventos para react-big-calendar
   const calendarEvents = useMemo(() => {
@@ -88,7 +168,7 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
 
   // Manejar creación de nuevo evento con doble clic
   const handleSelectSlot = useCallback((slotInfo: any) => {
-    const newEvent: CalendarEvent = {
+    const eventTemplate: CalendarEvent = {
       id: '',
       title: '',
       description: '',
@@ -225,49 +305,81 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
               {state.events.filter(e => e.status === 'pending').length}
             </strong>
           </span>
+          <span className="stat week-info">
+            📅 <strong>Sem. {currentWeekNumber}</strong> (actual)
+          </span>
         </div>
       </div>
 
-      <DnDCalendar
-        localizer={localizer}
-        events={calendarEvents}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height }}
-        onSelectEvent={handleSelectEvent}
-        selectable
-        eventPropGetter={eventStyleGetter}
-        components={{
-          event: EventComponent,
-        }}
-        messages={{
-          next: 'Siguiente',
-          previous: 'Anterior',
-          today: 'Hoy',
-          month: 'Mes',
-          week: 'Semana',
-          day: 'Día',
-          agenda: 'Agenda',
-          date: 'Fecha',
-          time: 'Hora',
-          event: 'Evento',
-          noEventsInRange: 'No hay eventos en este rango',
-        }}
-        formats={{
-          dateFormat: 'dd',
-          dayFormat: (date: Date) => 
-            format(date, 'dd/MM', { locale: es }),
-          dayHeaderFormat: (date: Date) => 
-            format(date, 'cccc d/M', { locale: es }),
-          monthHeaderFormat: (date: Date) => 
-            format(date, 'MMMM yyyy', { locale: es }),
-        }}
-        onEventDrop={handleEventDrop}
-        onEventResize={handleEventResize}
-        onSelectSlot={handleSelectSlot}
-        resizable
-        draggableAccessor={() => true}
-      />
+      <div className="calendar-info">
+        <small>💡 <strong>Tip:</strong> Haz clic en los números de semana (izquierda) para navegar rápidamente</small>
+      </div>
+
+      <div className="calendar-with-weeks">
+        {/* Números de semana a la izquierda */}
+        <div className="week-numbers">
+          <div className="week-numbers-header">
+            <span>Sem</span>
+          </div>
+          {visibleWeeks.map((weekNum, index) => (
+            <div 
+              key={index} 
+              className={`week-number ${weekNum === currentWeekNumber ? 'current-week' : ''}`}
+              data-week={weekNum}
+              title={`Semana ${weekNum} del año ${weekNum === currentWeekNumber ? '(Semana actual)' : ''}\nHaz clic para navegar a esta semana`}
+              onClick={() => handleWeekClick(weekNum)}
+            >
+              {weekNum}
+              {weekNum === currentWeekNumber && <span className="current-indicator">●</span>}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendario principal */}
+        <div className="calendar-main">
+          <DnDCalendar<CalendarEvent>
+            localizer={localizer}
+            events={calendarEvents}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height }}
+            onSelectEvent={handleSelectEvent}
+            selectable
+            eventPropGetter={eventStyleGetter}
+            components={{
+              event: EventComponent,
+            }}
+            messages={{
+              next: 'Siguiente',
+              previous: 'Anterior',
+              today: 'Hoy',
+              month: 'Mes',
+              week: 'Semana',
+              day: 'Día',
+              agenda: 'Agenda',
+              date: 'Fecha',
+              time: 'Hora',
+              event: 'Evento',
+              noEventsInRange: 'No hay eventos en este rango',
+            }}
+            formats={{
+              dateFormat: 'dd',
+              dayFormat: (date: Date) => 
+                format(date, 'dd/MM', { locale: es }),
+              dayHeaderFormat: (date: Date) => 
+                format(date, 'cccc d/M', { locale: es }),
+              monthHeaderFormat: (date: Date) => 
+                format(date, 'MMMM yyyy', { locale: es }),
+            }}
+            onEventDrop={handleEventDrop}
+            onEventResize={handleEventResize}
+            onSelectSlot={handleSelectSlot}
+            resizable
+            draggableAccessor={() => true}
+            onNavigate={handleNavigate}
+          />
+        </div>
+      </div>
 
       {state.error && (
         <div className="calendar-error">
