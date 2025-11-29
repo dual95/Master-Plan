@@ -32,6 +32,7 @@ export interface CalendarEvent {
   estimacion?: boolean;
   fechaEstimacion?: string;
   proyecto?: string;
+  componente?: string;
   planta?: 'P2' | 'P3';
   linea?: string; // MOEX, YOBEL, MELISSA, etc.
 }
@@ -108,6 +109,7 @@ export interface ProductionItem {
   laminado: boolean;
   estimacion: boolean;
   proyecto: string;
+  componente: string;
 }
 
 export interface ProductionProcess {

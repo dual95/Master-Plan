@@ -49,6 +49,7 @@ export interface ProductionSpreadsheetRow {
   PEDIDO: string;
   POS: number | string;
   PROYECTO: string;
+  COMPONENTE: string;
   MATERIAL: string;
   'F PRD': string;
   'CTD PEDIDO': number;
@@ -91,6 +92,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
   // Buscar columnas con nombres flexibles
   const pedido = String(getColumnValue(['PEDIDO', 'PO', 'ORDER'], 'PEDIDO') || '').trim();
   const proyecto = String(getColumnValue(['PROYECTO', 'PROJECT', 'DESCRIPCION'], 'PROYECTO') || '').trim();
+  const componente = String(getColumnValue(['COMPONENTE', 'COMPONENT', 'TIPO'], 'COMPONENTE') || '').trim();
   const pos = String(getColumnValue(['POS', 'POSICION', 'LINE'], 'POS') || '').trim();
   
   // Una fila es válida si tiene pedido O proyecto O posición válida
@@ -104,6 +106,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
     PEDIDO: pedido,
     POS: Number(getColumnValue(['POS', 'POSICION', 'LINE'], 'POS') || 0),
     PROYECTO: proyecto,
+    COMPONENTE: componente,
     MATERIAL: String(getColumnValue(['MATERIAL', 'MAT', 'TYPE'], 'MATERIAL') || ''),
     'F PRD': String(getColumnValue(['F PRD', 'FECHA', 'DATE'], 'F PRD') || ''),
     'CTD PEDIDO': Number(getColumnValue(['CTD PEDIDO', 'CANTIDAD', 'QTY', 'QUANTITY'], 'CTD PEDIDO') || 0),
@@ -122,6 +125,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
     console.log(`🔧 Objeto resultado fila ${debugIndex + 1}:`, {
       PEDIDO: result.PEDIDO,
       PROYECTO: result.PROYECTO,
+      COMPONENTE: result.COMPONENTE,
       MATERIAL: result.MATERIAL,
       POS: result.POS,
       processes: {
@@ -280,7 +284,8 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
       realizado: false,  // Se puede calcular más tarde
       laminado: isProcessRequired(typedRow.LAMINADO),
       estimacion: true,
-      proyecto: String(typedRow.PROYECTO || '')
+      proyecto: String(typedRow.PROYECTO || ''),
+      componente: String(typedRow.COMPONENTE || '')
     };
 
     items.push(productionItem);
@@ -351,10 +356,10 @@ function generateAutomaticTasksForProduct(
     
     const task: ProductionTask = {
       id: taskId,
-      title: `${processType}: ${item.proyecto}`,
+      title: generateStandardTaskName(item.proyecto, item.componente, processType),
       start: new Date(),
       end: new Date(Date.now() + process.duration * 60 * 60 * 1000),
-      description: `Pedido: ${item.pedido}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[PROCESO AUTOMÁTICO]`,
+      description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[PROCESO AUTOMÁTICO]`,
       priority: determineTaskPriority(item.fechaEstimacion),
       status: 'pending',
       category: processType,
@@ -379,7 +384,8 @@ function generateAutomaticTasksForProduct(
       pos: item.pos,
       material: item.material,
       pliegos: item.pliegos,
-      proyecto: item.proyecto
+      proyecto: item.proyecto,
+      componente: item.componente
     };
 
     tasks.push(task);
@@ -403,10 +409,10 @@ function generateAutomaticTasksForProduct(
       
     const ensambleTask: ProductionTask = {
       id: ensambleTaskId,
-      title: `ENSAMBLAJE: ${item.proyecto}`,
+      title: generateStandardTaskName(item.proyecto, item.componente, 'ENSAMBLAJE'),
       start: new Date(),
       end: new Date(Date.now() + ensambleProcess.duration * 60 * 60 * 1000),
-      description: `Pedido: ${item.pedido}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[ENSAMBLAJE AUTOMÁTICO]`,
+      description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[ENSAMBLAJE AUTOMÁTICO]`,
       priority: determineTaskPriority(item.fechaEstimacion),
       status: 'pending',
       category: 'ENSAMBLAJE',
@@ -431,7 +437,8 @@ function generateAutomaticTasksForProduct(
       pos: item.pos,
       material: item.material,
       pliegos: item.pliegos,
-      proyecto: item.proyecto
+      proyecto: item.proyecto,
+      componente: item.componente
     };
 
     tasks.push(ensambleTask);
@@ -439,6 +446,41 @@ function generateAutomaticTasksForProduct(
   }
 
   return tasks;
+}
+
+/**
+ * Genera la nomenclatura estándar [PROJECT]_[COMPONENTE] para tareas
+ */
+function generateStandardTaskName(proyecto: string, componente: string, processType: string): string {
+  // Limpiar y normalizar los nombres
+  const cleanProject = proyecto.trim().replace(/\s+/g, '_').toUpperCase();
+  const cleanComponent = componente.trim().replace(/\s+/g, '_').toUpperCase();
+  
+  // Si no hay componente, usar solo el proyecto
+  if (!cleanComponent) {
+    return `${processType}: ${cleanProject}`;
+  }
+  
+  // Formato estándar: [PROJECT]_[COMPONENTE]
+  const standardName = `${cleanProject}_${cleanComponent}`;
+  return `${processType}: ${standardName}`;
+}
+
+// Función para determinar prioridad basada en fecha de entrega
+function determineTaskPriority(fPrp: string): 'high' | 'medium' | 'low' {
+  if (!fPrp) return 'medium';
+  
+  try {
+    const deliveryDate = new Date(fPrp);
+    const today = new Date();
+    const daysUntilDelivery = Math.ceil((deliveryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntilDelivery <= 3) return 'high';
+    if (daysUntilDelivery <= 7) return 'medium';
+    return 'low';
+  } catch {
+    return 'medium';
+  }
 }
 
 /**
@@ -491,10 +533,10 @@ function generateTasksForProduct(
       
       const task: ProductionTask = {
         id: taskId,
-        title: `${processType}: ${item.proyecto}`,
+        title: generateStandardTaskName(item.proyecto, item.componente, processType),
         start: new Date(),
         end: new Date(Date.now() + process.duration * 60 * 60 * 1000),
-        description: `Pedido: ${item.pedido}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
+        description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
         priority: determineTaskPriority(item.fechaEstimacion),
         status: 'pending',
         category: processType,
@@ -519,7 +561,8 @@ function generateTasksForProduct(
         pos: item.pos,
         material: item.material,
         pliegos: item.pliegos,
-        proyecto: item.proyecto
+        proyecto: item.proyecto,
+        componente: item.componente
       };
 
       tasks.push(task);
@@ -540,10 +583,10 @@ function generateTasksForProduct(
       
       const ensambleTask: ProductionTask = {
         id: ensambleTaskId,
-        title: `ENSAMBLAJE: ${item.proyecto}`,
+        title: generateStandardTaskName(item.proyecto, item.componente, 'ENSAMBLAJE'),
         start: new Date(),
         end: new Date(Date.now() + ensambleProcess.duration * 60 * 60 * 1000),
-        description: `Pedido: ${item.pedido}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
+        description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
         priority: determineTaskPriority(item.fechaEstimacion),
         status: 'pending',
         category: 'ENSAMBLAJE',
@@ -568,7 +611,8 @@ function generateTasksForProduct(
       pos: item.pos,
       material: item.material,
       pliegos: item.pliegos,
-      proyecto: item.proyecto
+      proyecto: item.proyecto,
+      componente: item.componente
     };
 
     tasks.push(ensambleTask);
@@ -623,23 +667,6 @@ function estimateProcessDuration(processType: string, pliegos: number, cantidad:
   return estimatedHours;
 }
 
-// Función para determinar prioridad basada en fecha de entrega
-function determineTaskPriority(fPrp: string): 'high' | 'medium' | 'low' {
-  if (!fPrp) return 'medium';
-  
-  try {
-    const deliveryDate = new Date(fPrp);
-    const today = new Date();
-    const daysUntilDelivery = Math.ceil((deliveryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysUntilDelivery <= 3) return 'high';
-    if (daysUntilDelivery <= 7) return 'medium';
-    return 'low';
-  } catch {
-    return 'medium';
-  }
-}
-
 /**
  * Convierte tareas de producción a eventos de calendario
  */
@@ -669,6 +696,7 @@ export function convertTasksToCalendarEvents(tasks: ProductionTask[]): CalendarE
     material: task.material,
     pliegos: task.pliegos,
     proyecto: task.proyecto,
+    componente: task.componente,
     planta: task.planta
   }));
 }
@@ -767,6 +795,7 @@ export function generateSampleProductionData(): ProductionPlan {
       PEDIDO: '1402048642',
       POS: 10,
       PROYECTO: 'BOLSA ROGERS ENTERPRISES 10"X4"X7"75',
+      COMPONENTE: 'BOLSA',
       MATERIAL: 'PP',
       'F PRD': '2025-01-15',
       'CTD PEDIDO': 21000,
@@ -783,6 +812,7 @@ export function generateSampleProductionData(): ProductionPlan {
       PEDIDO: '1402048677',
       POS: 10,
       PROYECTO: 'BOLSA FRED MEYER 6"X3.5"X3"',
+      COMPONENTE: 'BOLSA',
       MATERIAL: 'COUCHE',
       'F PRD': '2025-01-20',
       'CTD PEDIDO': 39294,
@@ -799,6 +829,7 @@ export function generateSampleProductionData(): ProductionPlan {
       PEDIDO: '1402049207',
       POS: 30,
       PROYECTO: 'BOLSA PINOS JEWELERS 7"X5"X9"',
+      COMPONENTE: 'BOLSA',
       MATERIAL: 'COUCHE',
       'F PRD': '2025-01-10',
       'CTD PEDIDO': 14400,
