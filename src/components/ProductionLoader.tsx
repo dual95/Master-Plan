@@ -20,6 +20,7 @@ export function ProductionLoader() {
   const [, setSelectedFile] = useState<DriveFile | null>(null);
   const [availableSheets, setAvailableSheets] = useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<string | null>(null);
+  const [spreadsheetData, setSpreadsheetData] = useState<any>(null);
   
   const { setEvents } = useAppActions();
 
@@ -73,12 +74,15 @@ export function ProductionLoader() {
       }
       
       // Leer datos de la hoja (automáticamente buscará PROCESOS PRD)
-      const spreadsheetData = await driveService.readSpreadsheet(file.id);
+      const spreadsheetResult = await driveService.readSpreadsheet(file.id, selectedSheet || undefined);
+      
+      // Guardar los datos del spreadsheet para usar el nombre de hoja real
+      setSpreadsheetData(spreadsheetResult);
       
       setProcessingStatus(`Procesando datos de producción desde ${fileTypeText}...`);
       
       // Parsear los datos de la hoja de cálculo
-      const productionPlan = parseProductionSpreadsheet(spreadsheetData.rows);
+      const productionPlan = parseProductionSpreadsheet(spreadsheetResult.rows);
       
       // Programar las tareas automáticamente
       const scheduledTasks = scheduleProductionTasks(productionPlan.tasks);
@@ -94,8 +98,10 @@ export function ProductionLoader() {
       const p2Tasks = productionPlan.tasks.filter(t => t.planta === 'P2');
       
       const fileType = file.isExcel ? 'Excel' : 'Google Sheets';
+      // Usar el nombre de hoja real del resultado, no el estado local
+      const actualSheetName = spreadsheetResult.sheetName || selectedSheet || 'Sin nombre';
       setProcessingStatus(
-        `✅ Procesado desde ${fileType} hoja "${selectedSheet}": ${productionPlan.items.length} productos → ` +
+        `✅ Procesado desde ${fileType} hoja "${actualSheetName}": ${productionPlan.items.length} productos → ` +
         `${p3Tasks.length} tareas P3 (Producción) + ${p2Tasks.length} tareas P2 (Ensamblaje)`
       );
       setShowTaskList(true);
@@ -268,9 +274,9 @@ export function ProductionLoader() {
             </div>
           </div>
 
-          {selectedSheet && (
+          {(selectedSheet || (spreadsheetData && spreadsheetData.sheetName)) && (
             <div className="sheet-summary">
-              <p><strong>📊 Hoja procesada:</strong> "{selectedSheet}"</p>
+              <p><strong>📊 Hoja procesada:</strong> "{spreadsheetData?.sheetName || selectedSheet}"</p>
               <p><strong>🔄 Flujo generado:</strong> 
                 Excel PROCESOS PRD → 
                 {productionPlan.tasks.filter(t => t.planta === 'P3').length} tareas P3 → 
@@ -304,7 +310,7 @@ export function ProductionLoader() {
                         <div key={task.id} className="task-item">
                           <div className="task-info">
                             <strong>{task.proyecto}</strong>
-                            <small>Pedido: {task.pedido} | {task.duration}h | {task.quantity} unidades</small>
+                            <small>Pedido: {task.pedido || '-'} | Pliegos: {typeof task.pliegos !== 'undefined' ? task.pliegos : '-'} | {task.duration}h | {task.quantity} unidades</small>
                           </div>
                           <div className={`task-priority ${task.priority}`}>
                             {task.priority === 'high' ? '🔴' : task.priority === 'medium' ? '🟡' : '🟢'}

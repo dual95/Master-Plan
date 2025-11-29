@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useRef } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import { format, parse, startOfWeek, getDay, getWeek } from 'date-fns';
@@ -6,6 +6,7 @@ import { es } from 'date-fns/locale';
 import type { CalendarEvent } from '../../types';
 import { useApp, useAppActions } from '../../hooks/useApp';
 import { EventModal } from '../../components/EventModal';
+import { EventInfoModal } from '../../components/EventInfoModal';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import './MasterCalendar.css';
@@ -37,6 +38,9 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
   // Estado para el modal
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Modal de info por doble clic
+  const [infoEvent, setInfoEvent] = useState<CalendarEvent | null>(null);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
   
   // Estado para el mes actual del calendario
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -127,16 +131,45 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
     }));
   }, [state.events]);
 
-  // Manejo de selección de eventos
+  // Doble clic manual: distinguir entre click y doble click
+  const clickTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastClickedEventId = useRef<string | null>(null);
+
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
-    setSelectedEvent(event);
-    setIsModalOpen(true);
+    if (clickTimeout.current && lastClickedEventId.current === event.id) {
+      // Doble clic detectado
+      clearTimeout(clickTimeout.current);
+      clickTimeout.current = null;
+      lastClickedEventId.current = null;
+      setInfoEvent(event);
+      setIsInfoOpen(true);
+    } else {
+      // Esperar para ver si es doble clic
+      lastClickedEventId.current = event.id;
+      clickTimeout.current = setTimeout(() => {
+        setSelectedEvent(event);
+        setIsModalOpen(true);
+        clickTimeout.current = null;
+        lastClickedEventId.current = null;
+      }, 250); // 250ms ventana para doble clic
+    }
+  }, []);
+
+  // Doble clic: solo info
+  const handleDoubleClickEvent = useCallback((event: CalendarEvent) => {
+    setInfoEvent(event);
+    setIsInfoOpen(true);
   }, []);
 
   // Handlers del modal
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedEvent(null);
+  }, []);
+
+  const handleCloseInfo = useCallback(() => {
+    setIsInfoOpen(false);
+    setInfoEvent(null);
   }, []);
 
   const handleSaveEvent = useCallback((event: CalendarEvent) => {
@@ -344,6 +377,7 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
             endAccessor={(event: any) => event.end}
             style={{ height }}
             onSelectEvent={handleSelectEvent as any}
+            onDoubleClickEvent={handleDoubleClickEvent as any}
             selectable
             eventPropGetter={eventStyleGetter as any}
             components={{
@@ -395,6 +429,12 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
         onClose={handleCloseModal}
         onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
+      />
+      {/* Modal solo info por doble clic */}
+      <EventInfoModal
+        event={infoEvent}
+        isOpen={isInfoOpen}
+        onClose={handleCloseInfo}
       />
     </div>
   );

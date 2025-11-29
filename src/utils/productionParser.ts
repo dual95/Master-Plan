@@ -89,12 +89,23 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
     return '';
   };
 
+  // Utilidad para parsear números con comas
+  const parseNumber = (value: any): number => {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/\./g, '').replace(/,/g, '');
+      const num = Number(cleaned);
+      return isNaN(num) ? 0 : num;
+    }
+    return 0;
+  };
+
   // Buscar columnas con nombres flexibles
-  const pedido = String(getColumnValue(['PEDIDO', 'PO', 'ORDER'], 'PEDIDO') || '').trim();
+  const pedido = String(getColumnValue(['PO', 'PO_ID', 'PEDIDO', 'ORDER'], 'PO') || '').trim();
   const proyecto = String(getColumnValue(['PROYECTO', 'PROJECT', 'DESCRIPCION'], 'PROYECTO') || '').trim();
   const componente = String(getColumnValue(['COMPONENTE', 'COMPONENT', 'TIPO'], 'COMPONENTE') || '').trim();
-  const pos = String(getColumnValue(['POS', 'POSICION', 'LINE'], 'POS') || '').trim();
-  
+  const pos = getColumnValue(['POS', 'POSICION', 'LINE'], 'POS');
+
   // Una fila es válida si tiene pedido O proyecto O posición válida
   if (!pedido && !proyecto && !pos) {
     return null;
@@ -104,13 +115,13 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
   const result: ProductionSpreadsheetRow = {
     ...row,
     PEDIDO: pedido,
-    POS: Number(getColumnValue(['POS', 'POSICION', 'LINE'], 'POS') || 0),
+    POS: pos !== '' ? parseNumber(pos) : 0,
     PROYECTO: proyecto,
     COMPONENTE: componente,
     MATERIAL: String(getColumnValue(['MATERIAL', 'MAT', 'TYPE'], 'MATERIAL') || ''),
-    'F PRD': String(getColumnValue(['F PRD', 'FECHA', 'DATE'], 'F PRD') || ''),
-    'CTD PEDIDO': Number(getColumnValue(['CTD PEDIDO', 'CANTIDAD', 'QTY', 'QUANTITY'], 'CTD PEDIDO') || 0),
-    PLIEGOS: Number(getColumnValue(['PLIEGOS', 'SHEETS', 'HOJAS'], 'PLIEGOS') || 0),
+    'F PRD': String(getColumnValue(['F PRD', 'FECHA', 'DATE', 'REQ DATE'], 'F PRD') || ''),
+    'CTD PEDIDO': getColumnValue(['CTD PEDIDO', 'CANTIDAD', 'QTY', 'QUANTITY', 'QTY + OVER'], 'CTD PEDIDO') !== '' ? parseNumber(getColumnValue(['CTD PEDIDO', 'CANTIDAD', 'QTY', 'QUANTITY', 'QTY + OVER'], 'CTD PEDIDO')) : 0,
+    PLIEGOS: getColumnValue(['PLIEGOS', 'SHEETS', 'HOJAS'], 'PLIEGOS') !== '' ? parseNumber(getColumnValue(['PLIEGOS', 'SHEETS', 'HOJAS'], 'PLIEGOS')) : 0,
     'MC FECHAS': String(getColumnValue(['MC FECHAS', 'FECHAS'], 'MC FECHAS') || ''),
     IMPRESION: String(row.IMPRESION || row.IMPRESIÓN || row['IMPRESIÓN'] || '').toUpperCase() === 'TRUE',
     BARNIZ: String(row.BARNIZ || '').toUpperCase() === 'TRUE',
@@ -358,7 +369,7 @@ function generateAutomaticTasksForProduct(
       id: taskId,
       title: generateStandardTaskName(item.proyecto, item.componente, processType),
       start: new Date(),
-      end: new Date(Date.now() + process.duration * 60 * 60 * 1000),
+      end: new Date(new Date().setHours(23,59,59,999)), // Termina el mismo día
       description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[PROCESO AUTOMÁTICO]`,
       priority: determineTaskPriority(item.fechaEstimacion),
       status: 'pending',
@@ -411,7 +422,7 @@ function generateAutomaticTasksForProduct(
       id: ensambleTaskId,
       title: generateStandardTaskName(item.proyecto, item.componente, 'ENSAMBLAJE'),
       start: new Date(),
-      end: new Date(Date.now() + ensambleProcess.duration * 60 * 60 * 1000),
+      end: new Date(new Date().setHours(23,59,59,999)), // Termina el mismo día
       description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[ENSAMBLAJE AUTOMÁTICO]`,
       priority: determineTaskPriority(item.fechaEstimacion),
       status: 'pending',
@@ -535,7 +546,7 @@ function generateTasksForProduct(
         id: taskId,
         title: generateStandardTaskName(item.proyecto, item.componente, processType),
         start: new Date(),
-        end: new Date(Date.now() + process.duration * 60 * 60 * 1000),
+        end: new Date(new Date().setHours(23,59,59,999)), // Termina el mismo día
         description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
         priority: determineTaskPriority(item.fechaEstimacion),
         status: 'pending',
@@ -585,7 +596,7 @@ function generateTasksForProduct(
         id: ensambleTaskId,
         title: generateStandardTaskName(item.proyecto, item.componente, 'ENSAMBLAJE'),
         start: new Date(),
-        end: new Date(Date.now() + ensambleProcess.duration * 60 * 60 * 1000),
+        end: new Date(new Date().setHours(23,59,59,999)), // Termina el mismo día
         description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
         priority: determineTaskPriority(item.fechaEstimacion),
         status: 'pending',
@@ -745,7 +756,7 @@ export function scheduleProductionTasks(tasks: ProductionTask[], startDate: Date
     // Ajustar para horario laboral (8:00 - 18:00)
     taskStartDate = adjustToWorkingHours(taskStartDate);
     
-    const taskEndDate = new Date(taskStartDate.getTime() + (task.duration || 1) * 60 * 60 * 1000);
+    const taskEndDate = new Date(new Date(taskStartDate).setHours(23,59,59,999)); // Termina el mismo día
     
     // Actualizar las fechas de la tarea
     task.start = taskStartDate;
