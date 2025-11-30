@@ -164,7 +164,6 @@ export function ProductionLoader() {
               <p className="drive-warning">⚠️ Conecta con Google Drive primero</p>
             )}
           </div>
-          
           {availableFiles.length > 0 && (
             <div className="files-list">
               <h5>Hojas de cálculo disponibles:</h5>
@@ -195,33 +194,21 @@ export function ProductionLoader() {
               ))}
             </div>
           )}
-
           {availableSheets.length > 0 && (
             <div className="sheets-info">
               <h5>📋 Hojas disponibles en el archivo:</h5>
-              <div className="sheets-list">
+              <ul>
                 {availableSheets.map(sheet => (
-                  <span 
-                    key={sheet} 
-                    className={`sheet-tag ${sheet === selectedSheet ? 'selected' : ''} ${
-                      sheet.toUpperCase().includes('PROCESOS PRD') ? 'procesos-prd' : ''
-                    }`}
-                  >
-                    {sheet}
-                    {sheet === selectedSheet && ' ✓'}
-                    {sheet.toUpperCase().includes('PROCESOS PRD') && ' 🎯'}
-                  </span>
+                  <li key={sheet} className={sheet === selectedSheet ? 'selected-sheet' : ''}>
+                    <button
+                      onClick={() => setSelectedSheet(sheet)}
+                      disabled={isProcessing}
+                    >
+                      {sheet}
+                    </button>
+                  </li>
                 ))}
-              </div>
-              {selectedSheet && (
-                <p className="selected-sheet-info">
-                  📊 <strong>Hoja seleccionada:</strong> "{selectedSheet}"
-                  {selectedSheet.toUpperCase().includes('PROCESOS PRD') 
-                    ? ' ✅ (Correcta para producción)' 
-                    : ' ⚠️ (Verificar si contiene datos de PROCESOS PRD)'
-                  }
-                </p>
-              )}
+              </ul>
             </div>
           )}
         </div>

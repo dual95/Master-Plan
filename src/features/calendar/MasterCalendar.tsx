@@ -45,6 +45,9 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
   // Estado para el mes actual del calendario
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  // Estado para la pestaña activa (P3 o P2)
+  const [activePlant, setActivePlant] = useState<'P3' | 'P2'>('P3');
+
   // Función para calcular las semanas visibles en la vista del mes
   const getVisibleWeeks = useCallback((date: Date) => {
     const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -130,6 +133,11 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
       end: new Date(event.end),
     }));
   }, [state.events]);
+
+  // Filtrar eventos según la planta seleccionada
+  const filteredEvents = useMemo(() => {
+    return calendarEvents.filter(e => e.planta === activePlant);
+  }, [calendarEvents, activePlant]);
 
   // Doble clic manual: distinguir entre click y doble click
   const clickTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -324,6 +332,21 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
             ➕ Nuevo Evento
           </button>
         </div>
+        {/* Tabs de planta */}
+        <div className="plant-tabs">
+          <button
+            className={activePlant === 'P3' ? 'active' : ''}
+            onClick={() => setActivePlant('P3')}
+          >
+            Planta 3
+          </button>
+          <button
+            className={activePlant === 'P2' ? 'active' : ''}
+            onClick={() => setActivePlant('P2')}
+          >
+            Planta 2
+          </button>
+        </div>
         <div className="calendar-stats">
           <span className="stat">
             Total de eventos: <strong>{state.events.length}</strong>
@@ -372,10 +395,12 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
         <div className="calendar-main">
           <DnDCalendar
             localizer={localizer}
-            events={calendarEvents}
+            events={filteredEvents}
             startAccessor={(event: any) => event.start}
             endAccessor={(event: any) => event.end}
             style={{ height }}
+            date={currentDate} // <-- Controla la navegación
+            onNavigate={handleNavigate}
             onSelectEvent={handleSelectEvent as any}
             onDoubleClickEvent={handleDoubleClickEvent as any}
             selectable
@@ -410,7 +435,6 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
             onSelectSlot={handleSelectSlot as any}
             resizable
             draggableAccessor={() => true}
-            onNavigate={handleNavigate}
           />
         </div>
       </div>

@@ -459,3 +459,27 @@
     font-size: 0.7rem;
   }
 }
+
+/* Estilos para las pestañas de planta */
+.plant-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.plant-tabs button {
+  background: #e0e0e0;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.plant-tabs button.active {
+  background: #fff;
+  color: #1976d2;
+  border-bottom: 2px solid #1976d2;
+  box-shadow: 0 -2px 8px rgba(25, 118, 210, 0.08);
+  z-index: 1;
+}
