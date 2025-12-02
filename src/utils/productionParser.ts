@@ -61,6 +61,7 @@ export interface ProductionSpreadsheetRow {
   ESTAMPADO: boolean;
   REALZADO: boolean;
   TROQUELADO: boolean;
+  UPDATE?: string; // Nueva columna UPDATE
 }
 
 export interface ProductionPlan {
@@ -123,6 +124,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
     'CTD PEDIDO': getColumnValue(['CTD PEDIDO', 'CANTIDAD', 'QTY', 'QUANTITY', 'QTY + OVER'], 'CTD PEDIDO') !== '' ? parseNumber(getColumnValue(['CTD PEDIDO', 'CANTIDAD', 'QTY', 'QUANTITY', 'QTY + OVER'], 'CTD PEDIDO')) : 0,
     PLIEGOS: getColumnValue(['PLIEGOS', 'SHEETS', 'HOJAS'], 'PLIEGOS') !== '' ? parseNumber(getColumnValue(['PLIEGOS', 'SHEETS', 'HOJAS'], 'PLIEGOS')) : 0,
     'MC FECHAS': String(getColumnValue(['MC FECHAS', 'FECHAS'], 'MC FECHAS') || ''),
+    UPDATE: String(getColumnValue(['UPDATE', 'ESTADO', 'STATUS'], 'UPDATE') || '').trim().toUpperCase(),
     IMPRESION: String(row.IMPRESION || row.IMPRESIÓN || row['IMPRESIÓN'] || '').toUpperCase() === 'TRUE',
     BARNIZ: String(row.BARNIZ || '').toUpperCase() === 'TRUE',
     LAMINADO: String(row.LAMINADO || '').toUpperCase() === 'TRUE',
@@ -396,7 +398,8 @@ function generateAutomaticTasksForProduct(
       material: item.material,
       pliegos: item.pliegos,
       proyecto: item.proyecto,
-      componente: item.componente
+      componente: item.componente,
+      updateStatus: '' // Las tareas automáticas no tienen estado inicial
     };
 
     tasks.push(task);
@@ -449,7 +452,8 @@ function generateAutomaticTasksForProduct(
       material: item.material,
       pliegos: item.pliegos,
       proyecto: item.proyecto,
-      componente: item.componente
+      componente: item.componente,
+      updateStatus: '' // Las tareas automáticas no tienen estado inicial
     };
 
     tasks.push(ensambleTask);
@@ -573,7 +577,8 @@ function generateTasksForProduct(
         material: item.material,
         pliegos: item.pliegos,
         proyecto: item.proyecto,
-        componente: item.componente
+        componente: item.componente,
+        updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | ''
       };
 
       tasks.push(task);
@@ -623,7 +628,8 @@ function generateTasksForProduct(
       material: item.material,
       pliegos: item.pliegos,
       proyecto: item.proyecto,
-      componente: item.componente
+      componente: item.componente,
+      updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | ''
     };
 
     tasks.push(ensambleTask);
@@ -708,7 +714,8 @@ export function convertTasksToCalendarEvents(tasks: ProductionTask[]): CalendarE
     pliegos: task.pliegos,
     proyecto: task.proyecto,
     componente: task.componente,
-    planta: task.planta
+    planta: task.planta,
+    updateStatus: task.updateStatus
   }));
 }
 

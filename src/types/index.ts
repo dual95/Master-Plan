@@ -35,6 +35,7 @@ export interface CalendarEvent {
   componente?: string;
   planta?: 'P2' | 'P3';
   linea?: string; // MOEX, YOBEL, MELISSA, etc.
+  updateStatus?: 'COMPLETED' | 'IN PROCESS' | 'PENDING' | ''; // Estado de la columna UPDATE
 }
 
 // Tipos para datos de Google Drive

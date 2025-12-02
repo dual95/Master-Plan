@@ -7,6 +7,7 @@ import type { CalendarEvent } from '../../types';
 import { useApp, useAppActions } from '../../hooks/useApp';
 import { EventModal } from '../../components/EventModal';
 import { EventInfoModal } from '../../components/EventInfoModal';
+import { persistenceService } from '../../services/persistenceService';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import './MasterCalendar.css';
@@ -33,7 +34,7 @@ interface MasterCalendarProps {
 
 export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
   const { state } = useApp();
-  const { setError, updateEvent, addEvent, deleteEvent } = useAppActions();
+  const { setError, updateEvent, addEvent, deleteEvent, clearPersistedData } = useAppActions();
   
   // Estado para el modal
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -269,22 +270,34 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
     }
   }, [updateEvent, setError]);
 
-  // Personalizar el estilo de los eventos según su prioridad
+  // Personalizar el estilo de los eventos según su prioridad y estado de UPDATE
   const eventStyleGetter = (event: CalendarEvent) => {
     let backgroundColor = '#3174ad';
     
-    switch (event.priority) {
-      case 'high':
-        backgroundColor = '#d32f2f';
-        break;
-      case 'medium':
-        backgroundColor = '#f57c00';
-        break;
-      case 'low':
-        backgroundColor = '#388e3c';
-        break;
-      default:
-        backgroundColor = event.color || '#3174ad';
+    // Prioridad por estado de UPDATE
+    if (event.updateStatus) {
+      if (event.updateStatus === 'COMPLETED') {
+        backgroundColor = '#4caf50'; // Verde para completado
+      } else if (event.updateStatus === 'IN PROCESS') {
+        backgroundColor = '#ff9800'; // Naranja para en proceso
+      } else if (event.updateStatus === 'PENDING' || event.updateStatus === '') {
+        backgroundColor = '#9e9e9e'; // Gris para pendiente o sin estado
+      }
+    } else {
+      // Si no hay updateStatus, usar prioridad
+      switch (event.priority) {
+        case 'high':
+          backgroundColor = '#d32f2f';
+          break;
+        case 'medium':
+          backgroundColor = '#f57c00';
+          break;
+        case 'low':
+          backgroundColor = '#388e3c';
+          break;
+        default:
+          backgroundColor = event.color || '#3174ad';
+      }
     }
 
     const style = {
@@ -322,15 +335,30 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
       <div className="calendar-header">
         <div className="header-top">
           <h2>Master Plan - Calendario</h2>
-          <button 
-            className="new-event-button"
-            onClick={() => {
-              setSelectedEvent(null);
-              setIsModalOpen(true);
-            }}
-          >
-            ➕ Nuevo Evento
-          </button>
+          <div className="header-actions">
+            <button 
+              className="new-event-button"
+              onClick={() => {
+                setSelectedEvent(null);
+                setIsModalOpen(true);
+              }}
+            >
+              ➕ Nuevo Evento
+            </button>
+            {persistenceService.hasPersistedData() && (
+              <button 
+                className="clear-data-button"
+                onClick={() => {
+                  if (window.confirm('¿Estás seguro de borrar todos los datos guardados? Esta acción no se puede deshacer.')) {
+                    clearPersistedData();
+                  }
+                }}
+                title="Borrar datos guardados"
+              >
+                🗑️ Limpiar Datos
+              </button>
+            )}
+          </div>
         </div>
         {/* Tabs de planta */}
         <div className="plant-tabs">
@@ -347,6 +375,23 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
             Planta 2
           </button>
         </div>
+        
+        {/* Leyenda de colores según estado UPDATE */}
+        <div className="status-legend">
+          <div className="legend-item">
+            <span className="legend-color" style={{ backgroundColor: '#4caf50' }}></span>
+            <span className="legend-label">COMPLETED</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ backgroundColor: '#ff9800' }}></span>
+            <span className="legend-label">IN PROCESS</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ backgroundColor: '#9e9e9e' }}></span>
+            <span className="legend-label">PENDING / Sin Estado</span>
+          </div>
+        </div>
+        
         <div className="calendar-stats">
           <span className="stat">
             Total de eventos: <strong>{state.events.length}</strong>

@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { AppState, AppAction, CalendarEvent } from '../types';
+import { persistenceService } from '../services/persistenceService';
 
 // Estado inicial
 const initialState: AppState = {
@@ -69,6 +70,29 @@ interface AppProviderProps {
 export function AppProvider({ children }: AppProviderProps) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    const persistedState = persistenceService.loadEvents();
+    if (persistedState && persistedState.events.length > 0) {
+      console.log('🔄 Restaurando eventos guardados...');
+      dispatch({ type: 'SET_EVENTS', payload: persistedState.events });
+      
+      // Mostrar notificación al usuario
+      const info = persistenceService.getStorageInfo();
+      if (info) {
+        console.log(`📊 Eventos restaurados: ${info.eventCount}`);
+        console.log(`📅 Última actualización: ${new Date(info.lastUpdated || '').toLocaleString()}`);
+      }
+    }
+  }, []);
+
+  // Guardar datos automáticamente cuando cambian los eventos
+  useEffect(() => {
+    if (state.events.length > 0) {
+      persistenceService.saveEvents(state.events, state.selectedFile?.name);
+    }
+  }, [state.events, state.selectedFile]);
+
   return (
     <AppContext.Provider value={{ state, dispatch }}>
       {children}
@@ -116,5 +140,11 @@ export function useAppActions() {
     
     setError: (error: string | null) =>
       dispatch({ type: 'SET_ERROR', payload: error }),
+    
+    // Nueva función para limpiar datos guardados
+    clearPersistedData: () => {
+      persistenceService.clearEvents();
+      dispatch({ type: 'SET_EVENTS', payload: [] });
+    },
   };
 }
