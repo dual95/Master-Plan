@@ -555,7 +555,7 @@ class GoogleDriveService {
       // Si es un Uint8Array, convertir a ArrayBuffer
       if (response instanceof Uint8Array) {
         console.log('✅ Convirtiendo Uint8Array a ArrayBuffer');
-        return response.buffer;
+        return response.buffer as ArrayBuffer;
       }
       
       // Si es una cadena, puede ser base64 o datos binarios
