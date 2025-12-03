@@ -191,7 +191,7 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
     });
   } else {
     console.error('❌ No hay filas para procesar');
-    return { items, tasks };
+    return { items, tasks, machines: MACHINE_MAPPING };
   }
 
   // Debug: Analizar las primeras filas para entender el problema
