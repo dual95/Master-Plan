@@ -75,6 +75,104 @@ fi
 
 print_success "App configurada en Heroku"
 
+# Sincronizar variables de entorno
+echo ""
+echo "🔧 Sincronizando variables de entorno..."
+
+if [ -f .env ]; then
+    print_success "Archivo .env encontrado"
+    
+    # Leer variables del .env y configurarlas en Heroku
+    echo ""
+    echo "📋 Variables de entorno a configurar en Heroku:"
+    
+    # Extraer variables VITE_GOOGLE_*
+    GOOGLE_API_KEY=$(grep VITE_GOOGLE_API_KEY .env | cut -d '=' -f2 | tr -d '"' | tr -d "'" | xargs)
+    GOOGLE_CLIENT_ID=$(grep VITE_GOOGLE_CLIENT_ID .env | cut -d '=' -f2 | tr -d '"' | tr -d "'" | xargs)
+    GOOGLE_REDIRECT_URI=$(grep VITE_GOOGLE_REDIRECT_URI .env | cut -d '=' -f2 | tr -d '"' | tr -d "'" | xargs)
+    
+    # Mostrar valores (parcialmente ocultos por seguridad)
+    if [ ! -z "$GOOGLE_API_KEY" ]; then
+        MASKED_KEY="${GOOGLE_API_KEY:0:10}...${GOOGLE_API_KEY: -4}"
+        echo "   VITE_GOOGLE_API_KEY: $MASKED_KEY"
+    fi
+    
+    if [ ! -z "$GOOGLE_CLIENT_ID" ]; then
+        MASKED_ID="${GOOGLE_CLIENT_ID:0:20}..."
+        echo "   VITE_GOOGLE_CLIENT_ID: $MASKED_ID"
+    fi
+    
+    if [ ! -z "$GOOGLE_REDIRECT_URI" ]; then
+        echo "   VITE_GOOGLE_REDIRECT_URI: $GOOGLE_REDIRECT_URI"
+    fi
+    
+    echo ""
+    read -p "¿Configurar estas variables en Heroku? (y/n): " SYNC_VARS
+    
+    if [[ $SYNC_VARS =~ ^[Yy]$ ]]; then
+        if [ ! -z "$GOOGLE_API_KEY" ]; then
+            heroku config:set VITE_GOOGLE_API_KEY="$GOOGLE_API_KEY"
+        fi
+        
+        if [ ! -z "$GOOGLE_CLIENT_ID" ]; then
+            heroku config:set VITE_GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
+        fi
+        
+        if [ ! -z "$GOOGLE_REDIRECT_URI" ]; then
+            heroku config:set VITE_GOOGLE_REDIRECT_URI="$GOOGLE_REDIRECT_URI"
+        else
+            # Auto-generar REDIRECT_URI para Heroku
+            APP_URL=$(heroku info -s | grep web_url | cut -d= -f2 | tr -d '\n')
+            if [ ! -z "$APP_URL" ]; then
+                heroku config:set VITE_GOOGLE_REDIRECT_URI="${APP_URL}"
+                print_success "REDIRECT_URI configurado automáticamente: ${APP_URL}"
+            fi
+        fi
+        
+        print_success "Variables sincronizadas con Heroku"
+    else
+        print_warning "Variables NO sincronizadas. Recuerda configurarlas manualmente:"
+        echo "   heroku config:set VITE_GOOGLE_API_KEY=tu_key"
+        echo "   heroku config:set VITE_GOOGLE_CLIENT_ID=tu_client_id"
+    fi
+else
+    print_warning "Archivo .env no encontrado"
+    print_warning "⚠️  IMPORTANTE: Configura manualmente las variables en Heroku:"
+    echo ""
+    echo "   heroku config:set VITE_GOOGLE_API_KEY=tu_key"
+    echo "   heroku config:set VITE_GOOGLE_CLIENT_ID=tu_client_id"
+    echo ""
+    read -p "Presiona Enter para continuar..."
+fi
+
+# Verificar configuración de Google OAuth
+echo ""
+echo "🔍 Verificación de Google OAuth..."
+echo ""
+print_warning "RECORDATORIO: Verifica en Google Cloud Console:"
+echo "   1. OAuth 2.0 Client ID configurado"
+echo "   2. JavaScript origins autorizados:"
+echo "      - http://localhost:5173"
+echo "      - https://tu-app.herokuapp.com"
+echo "   3. Redirect URIs autorizados:"
+echo "      - http://localhost:5173"
+echo "      - https://tu-app.herokuapp.com"
+echo ""
+read -p "¿Has verificado la configuración de Google Cloud Console? (y/n): " VERIFIED_OAUTH
+
+if [[ ! $VERIFIED_OAUTH =~ ^[Yy]$ ]]; then
+    print_error "DETÉN EL DEPLOY"
+    echo ""
+    echo "📘 Sigue estos pasos:"
+    echo "   1. Ve a https://console.cloud.google.com/"
+    echo "   2. Selecciona tu proyecto"
+    echo "   3. Ve a 'APIs & Services' > 'Credentials'"
+    echo "   4. Edita tu OAuth 2.0 Client ID"
+    echo "   5. Agrega las URLs de localhost y Heroku"
+    echo ""
+    read -p "Presiona Enter cuando hayas terminado..."
+fi
+
 # Instalar dependencias
 echo ""
 echo "📦 Instalando dependencias..."

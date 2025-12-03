@@ -42,18 +42,19 @@
      ├─ server.js ...................... ✅ Servidor Express
      ├─ Procfile ....................... ✅ Config Heroku
      ├─ package.json ................... ✅ Scripts + Deps
-     ├─ deploy.sh ...................... ✅ Deploy automático
+     ├─ deploy.sh ...................... ✅ Deploy + Sync automático
+     ├─ verify-config.sh ............... ✅ Verificar sincronización
      └─ test-production.sh ............. ✅ Test local
 
-  ⚡ Deploy en 3 Pasos
+  ⚡ Deploy en 3 Pasos (CON SINCRONIZACIÓN AUTOMÁTICA)
      
-     1️⃣  Probar Localmente
-         ./test-production.sh
+     1️⃣  Verifica que Local y Heroku sean iguales
+         ./verify-config.sh
      
      2️⃣  Login en Heroku
          heroku login
      
-     3️⃣  Desplegar
+     3️⃣  Desplegar (sincroniza automáticamente)
          ./deploy.sh
 
 
@@ -63,6 +64,9 @@
 
   📄 RESUMEN-COMPLETO.md
      └─ Vista general completa del proyecto
+
+  📄 SYNC-GUIDE.md
+     └─ Guía de sincronización Local ↔ Heroku (NUEVO)
 
   📄 PERSISTENCIA-Y-UPDATE-IMPLEMENTADO.md
      └─ Detalles técnicos de persistencia y colores
@@ -93,14 +97,20 @@
   ├─ ./test-production.sh .......... Probar modo producción
   └─ npm run preview ............... Preview del build
 
+  Sincronización
+  ├─ ./verify-config.sh ............ Comparar Local vs Heroku
+  └─ ./deploy.sh ................... Deploy + Sync automático
+
   Deploy
   ├─ ./deploy.sh ................... Deploy automático
   ├─ heroku logs --tail ............ Ver logs
   ├─ heroku open ................... Abrir app
+  ├─ heroku config ................. Ver variables
   └─ heroku restart ................ Reiniciar
 
   Ayuda
   ├─ ./heroku-commands.sh .......... Ver todos los comandos
+  ├─ cat SYNC-GUIDE.md ............. Guía de sincronización
   └─ cat DEPLOYMENT-CHECKLIST.md ... Ver checklist
 
 
@@ -149,19 +159,31 @@
 │  🎓 PRÓXIMOS PASOS                                                      │
 └─────────────────────────────────────────────────────────────────────────┘
 
-  1. Instalar Heroku CLI (si no lo tienes)
+  1. Configurar variables de entorno
+     cp .env.example .env
+     # Edita .env con tus credenciales de Google
+
+  2. Configurar Google Cloud Console
+     - Agrega http://localhost:5173 Y https://tu-app.herokuapp.com
+     - En Authorized JavaScript origins
+     - En Authorized redirect URIs
+
+  3. Verificar sincronización
+     ./verify-config.sh
+
+  4. Instalar Heroku CLI (si no lo tienes)
      curl https://cli-assets.heroku.com/install.sh | sh
 
-  2. Probar localmente
+  5. Probar localmente
      ./test-production.sh
 
-  3. Desplegar a Heroku
+  6. Desplegar a Heroku (sincroniza automáticamente)
      ./deploy.sh
 
-  4. Compartir URL con equipo
+  7. Compartir URL con equipo
      heroku info | grep "Web URL"
 
-  5. Monitorear
+  8. Monitorear
      heroku logs --tail
 
 
