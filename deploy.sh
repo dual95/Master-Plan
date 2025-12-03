@@ -110,6 +110,11 @@ if [ -f .env ]; then
     read -p "¿Configurar estas variables en Heroku? (y/n): " SYNC_VARS
     
     if [[ $SYNC_VARS =~ ^[Yy]$ ]]; then
+        echo ""
+        print_info "⚠️  IMPORTANTE: Configurando variables ANTES del deploy"
+        print_info "   (Esto fuerza a Heroku a rebuildeear con las variables correctas)"
+        echo ""
+        
         if [ ! -z "$GOOGLE_API_KEY" ]; then
             heroku config:set VITE_GOOGLE_API_KEY="$GOOGLE_API_KEY"
         fi
@@ -130,6 +135,12 @@ if [ -f .env ]; then
         fi
         
         print_success "Variables sincronizadas con Heroku"
+        
+        # Verificar que las variables se configuraron correctamente
+        echo ""
+        print_info "Verificando configuración en Heroku..."
+        heroku config:get VITE_GOOGLE_API_KEY > /dev/null && print_success "VITE_GOOGLE_API_KEY ✓" || print_error "VITE_GOOGLE_API_KEY ✗"
+        heroku config:get VITE_GOOGLE_CLIENT_ID > /dev/null && print_success "VITE_GOOGLE_CLIENT_ID ✓" || print_error "VITE_GOOGLE_CLIENT_ID ✗"
     else
         print_warning "Variables NO sincronizadas. Recuerda configurarlas manualmente:"
         echo "   heroku config:set VITE_GOOGLE_API_KEY=tu_key"
