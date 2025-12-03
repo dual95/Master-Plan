@@ -158,21 +158,40 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
   const tasks: ProductionTask[] = [];
   let processedCount = 0; // Contador para debugging
   
+  console.log('🎯 =================================');
+  console.log('🎯 PARSEANDO HOJA DE PRODUCCIÓN');
+  console.log('🎯 =================================');
+  
   // Debug: Mostrar las columnas disponibles
   if (spreadsheetRows.length > 0) {
     const sampleRow = spreadsheetRows[0];
-    console.log('📋 Columnas disponibles en parser:', Object.keys(sampleRow));
-    console.log('📊 Total de filas a procesar:', spreadsheetRows.length);
-    console.log('🔍 Muestra de valores en primera fila:', {
-      allKeys: Object.keys(sampleRow),
-      PO: sampleRow['PO'],
-      PEDIDO: sampleRow['PEDIDO'],
-      PROYECTO: sampleRow['PROYECTO'],
-      PROJECT: sampleRow['PROJECT'],
-      MATERIAL: sampleRow['MATERIAL'],
-      POS: sampleRow['POS'],
-      allValues: Object.entries(sampleRow).slice(0, 10)
+    const allKeys = Object.keys(sampleRow);
+    
+    console.log('📋 Total de filas recibidas:', spreadsheetRows.length);
+    console.log('📋 Total de columnas:', allKeys.length);
+    console.log('📋 Columnas disponibles:', allKeys);
+    
+    // Buscar las columnas clave
+    const keyColumns = {
+      PO: allKeys.find(k => k.toUpperCase() === 'PO'),
+      PEDIDO: allKeys.find(k => k.toUpperCase() === 'PEDIDO'),
+      PROJECT: allKeys.find(k => k.toUpperCase() === 'PROJECT'),
+      PROYECTO: allKeys.find(k => k.toUpperCase() === 'PROYECTO'),
+      POS: allKeys.find(k => k.toUpperCase() === 'POS'),
+      MATERIAL: allKeys.find(k => k.toUpperCase() === 'MATERIAL'),
+      UPDATE: allKeys.find(k => k.toUpperCase() === 'UPDATE')
+    };
+    
+    console.log('🔑 Columnas clave encontradas:', keyColumns);
+    console.log('📝 Muestra de primera fila:', {
+      PO: sampleRow[keyColumns.PO || 'PO'],
+      PROJECT: sampleRow[keyColumns.PROJECT || 'PROJECT'],
+      MATERIAL: sampleRow[keyColumns.MATERIAL || 'MATERIAL'],
+      POS: sampleRow[keyColumns.POS || 'POS']
     });
+  } else {
+    console.error('❌ No hay filas para procesar');
+    return { items, tasks };
   }
 
   // Debug: Analizar las primeras filas para entender el problema

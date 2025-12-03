@@ -325,30 +325,103 @@ class GoogleDriveService {
         }
       }
 
-      // Leer datos de la hoja
-      const range = `${targetSheet}!A:Z`; // Leer las primeras 26 columnas
+      // Leer datos de la hoja - extender a más columnas para incluir fechas de procesos
+      const range = `${targetSheet}`; // Leer toda la hoja sin límite
+      console.log(`📊 Leyendo rango: ${range}`);
+      
       const valuesResponse = await this.gapi.client.sheets.spreadsheets.values.get({
         spreadsheetId: fileId,
-        range: range
+        range: range,
+        majorDimension: 'ROWS',
+        valueRenderOption: 'UNFORMATTED_VALUE',
+        dateTimeRenderOption: 'FORMATTED_STRING'
       });
 
       const values = valuesResponse.result.values || [];
+      console.log(`📊 Total de filas leídas: ${values.length}`);
+      
       if (values.length === 0) {
-        throw new Error('No data found in spreadsheet');
+        throw new Error('No se encontraron datos en la hoja de cálculo');
       }
 
-      const headers = values[0];
-      const rows: SpreadsheetRow[] = values.slice(1).map((row: any[]) => {
+      // DEBUG: Ver el contenido raw de las primeras filas
+      console.log('🔍 Contenido RAW de primera fila:', values[0]);
+      console.log('🔍 Tipo de primera fila:', typeof values[0], Array.isArray(values[0]));
+      console.log('🔍 Contenido RAW de segunda fila:', values[1]);
+      
+      // Buscar la fila de encabezados (puede que no sea la primera)
+      let headerRowIndex = 0;
+      let headers: string[] = [];
+      
+      // Intentar encontrar la fila de encabezados buscando palabras clave
+      for (let i = 0; i < Math.min(5, values.length); i++) {
+        const row = values[i] || [];
+        const rowStr = JSON.stringify(row).toUpperCase();
+        
+        // Buscar indicadores de que esta es la fila de headers
+        if (rowStr.includes('PO') || rowStr.includes('PROJECT') || rowStr.includes('MATERIAL')) {
+          headerRowIndex = i;
+          headers = row.map((h: any) => String(h || '').trim());
+          console.log(`✅ Fila de encabezados encontrada en índice ${i}`);
+          break;
+        }
+      }
+      
+      // Si no se encontraron headers, usar la primera fila de todos modos
+      if (headers.length === 0) {
+        console.warn('⚠️ No se encontraron encabezados obvios, usando primera fila');
+        headers = (values[0] || []).map((h: any) => String(h || '').trim());
+      }
+      
+      // Filtrar headers vacíos y crear índices
+      const validHeaderIndices: number[] = [];
+      const validHeaders: string[] = [];
+      
+      headers.forEach((header, index) => {
+        if (header && header !== '') {
+          validHeaderIndices.push(index);
+          validHeaders.push(header);
+        }
+      });
+      
+      console.log(`📋 Encabezados encontrados (${validHeaders.length}):`, validHeaders);
+      console.log(`📋 Índices válidos:`, validHeaderIndices);
+      
+      console.log(`📋 Encabezados encontrados (${validHeaders.length}):`, validHeaders);
+      console.log(`📋 Índices válidos:`, validHeaderIndices);
+      
+      // Convertir filas a objetos usando solo los headers válidos
+      const dataStartIndex = headerRowIndex + 1;
+      const rows: SpreadsheetRow[] = values.slice(dataStartIndex).map((row: any[], rowIndex: number) => {
         const rowData: SpreadsheetRow = {};
-        headers.forEach((header: string, index: number) => {
-          rowData[header] = row[index] || '';
+        
+        validHeaderIndices.forEach((colIndex, validIndex) => {
+          const header = validHeaders[validIndex];
+          const cellValue = row[colIndex];
+          rowData[header] = cellValue !== undefined && cellValue !== null 
+            ? String(cellValue).trim() 
+            : '';
         });
+        
+        // Log de las primeras 3 filas para debug
+        if (rowIndex < 3) {
+          console.log(`📝 Fila ${rowIndex + 1} (muestra):`, {
+            PO: rowData['PO'],
+            PROJECT: rowData['PROJECT'],
+            MATERIAL: rowData['MATERIAL'],
+            totalColumns: Object.keys(rowData).length,
+            allData: rowData
+          });
+        }
+        
         return rowData;
       });
 
+      console.log(`✅ Total de filas procesadas: ${rows.length}`);
+
       return {
         sheetName: targetSheet || 'Unknown Sheet',
-        headers,
+        headers: validHeaders,
         rows
       };
     } catch (error) {
