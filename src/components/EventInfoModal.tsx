@@ -23,6 +23,18 @@ export const EventInfoModal: React.FC<EventInfoModalProps> = ({ event, isOpen, o
           <div className="info-row"><strong>POS:</strong> {event.pos ?? '-'}</div>
           <div className="info-row"><strong>PROYECTO:</strong> {event.proyecto || '-'}</div>
           <div className="info-row"><strong>PLIEGOS:</strong> {event.pliegos ?? '-'}</div>
+          {event.esperado !== undefined && (
+            <div className="info-row"><strong>📊 Esperado:</strong> {event.esperado}</div>
+          )}
+          {event.real !== undefined && (
+            <div className="info-row"><strong>📈 Real:</strong> {event.real}</div>
+          )}
+          {event.esperado !== undefined && event.real !== undefined && (
+            <div className="info-row">
+              <strong>📉 Diferencia:</strong> {(event.real - event.esperado).toFixed(2)}
+              {event.real > event.esperado ? ' 🔴 (Por encima)' : event.real < event.esperado ? ' 🟢 (Por debajo)' : ' ✅ (Exacto)'}
+            </div>
+          )}
         </div>
       </div>
     </div>

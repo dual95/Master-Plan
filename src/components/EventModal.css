@@ -232,3 +232,44 @@
 .form-group select[value="low"] {
   border-color: #28a745;
 }
+
+/* Estilos para campos numéricos esperado y real */
+.form-group input[type="number"] {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.form-group input[type="number"]::-webkit-inner-spin-button,
+.form-group input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+/* Highlight para campos de métricas */
+.form-group label[for="esperado"],
+.form-group label[for="real"] {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Estilos para info-row con diferencia */
+.event-info-fields .info-row {
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: #f8f9fa;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.event-info-fields .info-row strong {
+  color: #495057;
+  min-width: 120px;
+}
+
+/* Responsive para campos numéricos */
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}

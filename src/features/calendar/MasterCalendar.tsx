@@ -1,5 +1,6 @@
 import { useMemo, useCallback, useState, useRef } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import type { View } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import { format, parse, startOfWeek, getDay, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -97,6 +98,12 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
     setCurrentDate(date);
   }, []);
 
+  // Handler para cuando cambia la vista del calendario
+  const handleViewChange = useCallback((view: View) => {
+    setCurrentView(view);
+    console.log(`📅 Vista cambiada a: ${view}`);
+  }, []);
+
   // Handler para navegación por número de semana
   const handleWeekClick = useCallback((weekNumber: number) => {
     // Calcular la fecha del primer día de esa semana
@@ -127,14 +134,40 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
     }
   }, [currentDate]);
 
+  // Vista actual del calendario
+  const [currentView, setCurrentView] = useState<View>('month');
+
   // Convertir eventos para react-big-calendar
   const calendarEvents = useMemo(() => {
-    return state.events.map(event => ({
-      ...event,
-      start: new Date(event.start),
-      end: new Date(event.end),
-    }));
-  }, [state.events]);
+    return state.events.map(event => {
+      const start = new Date(event.start);
+      const end = new Date(event.end);
+      
+      // En vistas de semana y día, normalizar todas las tareas al mismo rango horario
+      // para que se muestren como bloques compactos sin importar la duración
+      if (currentView === 'week' || currentView === 'day') {
+        // Todas las tareas ocupan el mismo espacio: 8:00 AM a 8:30 AM
+        const normalizedStart = new Date(start);
+        normalizedStart.setHours(8, 0, 0, 0);
+        
+        const normalizedEnd = new Date(start);
+        normalizedEnd.setHours(8, 30, 0, 0);
+        
+        return {
+          ...event,
+          start: normalizedStart,
+          end: normalizedEnd,
+        };
+      }
+      
+      // En vista de mes, mantener el comportamiento normal
+      return {
+        ...event,
+        start,
+        end,
+      };
+    });
+  }, [state.events, currentView]);
 
   // Filtrar eventos según la planta seleccionada
   const filteredEvents = useMemo(() => {
@@ -313,12 +346,13 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
     return { style };
   };
 
-  // Componente personalizado para mostrar eventos
+  // Componente personalizado para mostrar eventos en vista de semana/día
   const EventComponent = ({ event }: { event: CalendarEvent }) => (
     <div className="custom-event">
       <strong>{event.title}</strong>
-      {event.assignedTo && <div className="event-assignee">👤 {event.assignedTo}</div>}
-      {event.category && <div className="event-category">🏷️ {event.category}</div>}
+      {event.machine && <div className="event-machine">🏭 {event.machine}</div>}
+      {event.pedido && <div className="event-pedido">📦 PO: {event.pedido}</div>}
+      {event.pos && <div className="event-pos">🔢 POS: {event.pos}</div>}
     </div>
   );
 
@@ -449,6 +483,8 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
             endAccessor={(event: any) => event.end}
             style={{ height }}
             date={currentDate} // <-- Controla la navegación
+            view={currentView}
+            onView={handleViewChange}
             onNavigate={handleNavigate}
             onSelectEvent={handleSelectEvent as any}
             onDoubleClickEvent={handleDoubleClickEvent as any}
@@ -478,6 +514,8 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
                 format(date, 'cccc d/M', { locale: es }),
               monthHeaderFormat: (date: Date) => 
                 format(date, 'MMMM yyyy', { locale: es }),
+              timeGutterFormat: () => '', // Ocultar columna de horas en semana/día
+              eventTimeRangeFormat: () => '', // Ocultar rango de horas en eventos
             }}
             onEventDrop={handleEventDrop as any}
             onEventResize={handleEventResize as any}

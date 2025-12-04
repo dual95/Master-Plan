@@ -48,10 +48,19 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
   if (!isOpen) return null;
 
   const handleChange = (field: keyof CalendarEvent, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    // Convertir a número para campos numéricos
+    if (field === 'esperado' || field === 'real') {
+      const numValue = value === '' ? undefined : parseFloat(value);
+      setFormData(prev => ({
+        ...prev,
+        [field]: numValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -192,6 +201,33 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
                 value={formData.assignee}
                 onChange={(e) => handleChange('assignee', e.target.value)}
                 placeholder="Nombre de la persona responsable"
+              />
+            </div>
+          </div>
+
+          {/* Campos manuales: Esperado y Real */}
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="esperado">📊 Esperado</label>
+              <input
+                id="esperado"
+                type="number"
+                step="0.01"
+                value={formData.esperado || ''}
+                onChange={(e) => handleChange('esperado', e.target.value)}
+                placeholder="Valor esperado"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="real">📈 Real</label>
+              <input
+                id="real"
+                type="number"
+                step="0.01"
+                value={formData.real || ''}
+                onChange={(e) => handleChange('real', e.target.value)}
+                placeholder="Valor real"
               />
             </div>
           </div>
