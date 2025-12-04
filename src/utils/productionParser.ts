@@ -492,12 +492,12 @@ function generateStandardTaskName(proyecto: string, componente: string, processT
   
   // Si no hay componente, usar solo el proyecto
   if (!cleanComponent) {
-    return `${processType}: ${cleanProject}`;
+    return cleanProject;
   }
   
-  // Formato estándar: [PROJECT]_[COMPONENTE]
+  // Formato estándar: [PROJECT]_[COMPONENTE] (sin el prefijo de proceso)
   const standardName = `${cleanProject}_${cleanComponent}`;
-  return `${processType}: ${standardName}`;
+  return standardName;
 }
 
 // Función para determinar prioridad basada en fecha de entrega

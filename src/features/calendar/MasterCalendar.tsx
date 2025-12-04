@@ -7,6 +7,7 @@ import type { CalendarEvent } from '../../types';
 import { useApp, useAppActions } from '../../hooks/useApp';
 import { EventModal } from '../../components/EventModal';
 import { EventInfoModal } from '../../components/EventInfoModal';
+import { TaskSearch } from '../../components/TaskSearch';
 import { persistenceService } from '../../services/persistenceService';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
@@ -332,6 +333,9 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
 
   return (
     <div className="master-calendar-container">
+      {/* Buscador de tareas */}
+      <TaskSearch />
+      
       <div className="calendar-header">
         <div className="header-top">
           <h2>Master Plan - Calendario</h2>
