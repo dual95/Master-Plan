@@ -429,13 +429,15 @@ function generateAutomaticTasksForProduct(
 
   // Agregar tarea de ensamblaje si tiene procesos previos
   if (tasks.length > 0) {
+    const assignedLine = assignP2Line(); // Asignar línea automáticamente
+    
     const ensambleProcess: ProductionProcess = {
       id: 'ensamblaje',
       name: 'ENSAMBLAJE',
       duration: Math.ceil(item.quantity / 1000), // 1 hora por cada 1000 unidades
       sequence: tasks.length + 1,
       dependencies: tasks.map(t => t.id),
-      machine: 'ENSAMBLAJE_01'
+      machine: assignedLine // Usar la línea asignada
     };
     
     const ensambleTaskId = `${item.pedido}-ENSAMBLAJE-${item.pos}-${Date.now()}`;
@@ -457,7 +459,7 @@ function generateAutomaticTasksForProduct(
       duration: ensambleProcess.duration,
       quantity: item.quantity,
       dependencies: ensambleProcess.dependencies,
-      machine: ensambleProcess.machine || 'ENSAMBLAJE_01',
+      machine: assignedLine,
     
       // Datos extendidos para ProductionTask
       productionItem: item,
@@ -472,6 +474,7 @@ function generateAutomaticTasksForProduct(
       pliegos: item.pliegos,
       proyecto: item.proyecto,
       componente: item.componente,
+      linea: assignedLine, // Agregar línea asignada
       updateStatus: '' // Las tareas automáticas no tienen estado inicial
     };
 
@@ -480,6 +483,31 @@ function generateAutomaticTasksForProduct(
   }
 
   return tasks;
+}
+
+/**
+ * Asigna automáticamente una línea de ensamblaje P2 basándose en la carga de trabajo
+ * Distribuye las tareas equitativamente entre las líneas disponibles
+ */
+const P2_LINES = ['MOEX', 'YOBEL', 'MELISSA', 'CAJA 1', 'CAJA 2', 'CAJA 3'];
+let currentLineIndex = 0;
+
+function assignP2Line(): string {
+  const line = P2_LINES[currentLineIndex];
+  currentLineIndex = (currentLineIndex + 1) % P2_LINES.length;
+  return line;
+}
+
+/**
+ * Genera un ID único para una tarea con mejor aleatoriedad
+ */
+function generateUniqueTaskId(pedido: string, processType: string, pos: string | number, index: number): string {
+  // Combinar timestamp con valores aleatorios para máxima unicidad
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 9);
+  const counter = index;
+  
+  return `${pedido}-${processType}-${pos}-${timestamp}-${counter}-${random}`;
 }
 
 /**
@@ -563,7 +591,7 @@ function generateTasksForProduct(
         machine: getDefaultMachineForProcess(processType)
       };
 
-      const taskId = `${item.pedido}-${processType}-${item.pos}-${Date.now()}-${processIndex}`;
+      const taskId = generateUniqueTaskId(item.pedido, processType, item.pos, processIndex);
       
       const task: ProductionTask = {
         id: taskId,
@@ -607,14 +635,18 @@ function generateTasksForProduct(
 
   // Agregar tarea de ensamblaje si tiene procesos previos
   if (tasks.length > 0) {
+    const assignedLine = assignP2Line(); // Asignar línea automáticamente
+    
     const ensambleProcess: ProductionProcess = {
       id: 'ensamblaje',
       name: 'ENSAMBLAJE',
       duration: Math.ceil(item.quantity / 1000), // 1 hora por cada 1000 unidades
       sequence: tasks.length + 1,
       dependencies: tasks.map(t => t.id),
-      machine: 'ENSAMBLAJE_01'
-    };      const ensambleTaskId = `${item.pedido}-ENSAMBLAJE-${item.pos}-${Date.now()}`;
+      machine: assignedLine // Usar la línea asignada
+    };
+    
+    const ensambleTaskId = generateUniqueTaskId(item.pedido, 'ENSAMBLAJE', item.pos, tasks.length);
       
       const ensambleTask: ProductionTask = {
         id: ensambleTaskId,
@@ -633,7 +665,7 @@ function generateTasksForProduct(
         duration: ensambleProcess.duration,
         quantity: item.quantity,
         dependencies: ensambleProcess.dependencies,
-        machine: ensambleProcess.machine || 'ENSAMBLAJE_01',
+        machine: assignedLine,
       
       // Datos extendidos para ProductionTask
       productionItem: item,
@@ -648,6 +680,7 @@ function generateTasksForProduct(
       pliegos: item.pliegos,
       proyecto: item.proyecto,
       componente: item.componente,
+      linea: assignedLine, // Agregar línea asignada
       updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | ''
     };
 

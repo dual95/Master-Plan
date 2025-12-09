@@ -23,6 +23,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, events: [...state.events, action.payload] };
     
     case 'UPDATE_EVENT':
+      // Verificar duplicados de ID antes de actualizar
+      const duplicates = state.events.filter(e => e.id === action.payload.id);
+      if (duplicates.length > 1) {
+        console.error(`⚠️ ADVERTENCIA: Se encontraron ${duplicates.length} eventos con el mismo ID: ${action.payload.id}`);
+        console.error('Eventos duplicados:', duplicates.map(e => ({ 
+          id: e.id, 
+          title: e.title, 
+          pedido: e.pedido, 
+          pos: e.pos 
+        })));
+      }
+      
       return {
         ...state,
         events: state.events.map(event =>
@@ -62,6 +74,37 @@ const AppContext = createContext<{
   dispatch: React.Dispatch<AppAction>;
 } | null>(null);
 
+/**
+ * Detecta y corrige eventos con IDs duplicados
+ */
+function deduplicateEvents(events: CalendarEvent[]): CalendarEvent[] {
+  const seenIds = new Set<string>();
+  const uniqueEvents: CalendarEvent[] = [];
+  const duplicates: CalendarEvent[] = [];
+  
+  events.forEach(event => {
+    if (seenIds.has(event.id)) {
+      // ID duplicado encontrado - regenerar ID
+      console.warn(`⚠️ ID duplicado detectado: ${event.id} para ${event.title}`);
+      duplicates.push(event);
+      
+      // Generar nuevo ID único
+      const newId = `${event.pedido || 'unknown'}-${event.processType || 'task'}-${event.pos || '0'}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      uniqueEvents.push({ ...event, id: newId });
+      seenIds.add(newId);
+    } else {
+      uniqueEvents.push(event);
+      seenIds.add(event.id);
+    }
+  });
+  
+  if (duplicates.length > 0) {
+    console.log(`🔧 Se corrigieron ${duplicates.length} IDs duplicados`);
+  }
+  
+  return uniqueEvents;
+}
+
 // Provider
 interface AppProviderProps {
   children: ReactNode;
@@ -75,7 +118,10 @@ export function AppProvider({ children }: AppProviderProps) {
     const persistedState = persistenceService.loadEvents();
     if (persistedState && persistedState.events.length > 0) {
       console.log('🔄 Restaurando eventos guardados...');
-      dispatch({ type: 'SET_EVENTS', payload: persistedState.events });
+      
+      // Deduplicar eventos antes de cargar
+      const uniqueEvents = deduplicateEvents(persistedState.events);
+      dispatch({ type: 'SET_EVENTS', payload: uniqueEvents });
       
       // Mostrar notificación al usuario
       const info = persistenceService.getStorageInfo();
@@ -114,8 +160,11 @@ export function useAppActions() {
   const { dispatch } = useApp();
 
   return {
-    setEvents: (events: CalendarEvent[]) =>
-      dispatch({ type: 'SET_EVENTS', payload: events }),
+    setEvents: (events: CalendarEvent[]) => {
+      // Deduplicar eventos antes de guardar
+      const uniqueEvents = deduplicateEvents(events);
+      dispatch({ type: 'SET_EVENTS', payload: uniqueEvents });
+    },
     
     addEvent: (event: CalendarEvent) =>
       dispatch({ type: 'ADD_EVENT', payload: event }),

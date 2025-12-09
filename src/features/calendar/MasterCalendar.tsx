@@ -9,6 +9,7 @@ import { useApp, useAppActions } from '../../hooks/useApp';
 import { EventModal } from '../../components/EventModal';
 import { EventInfoModal } from '../../components/EventInfoModal';
 import { TaskSearch } from '../../components/TaskSearch';
+import { P2SwimlanesView } from './P2SwimlanesView';
 import { persistenceService } from '../../services/persistenceService';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
@@ -451,23 +452,30 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
       </div>
 
       <div className="calendar-info">
-        <small>💡 <strong>Tip:</strong> Haz clic en los números de semana (izquierda) para navegar rápidamente</small>
+        <small>💡 <strong>Tip:</strong> {activePlant === 'P2' ? 'Arrastra las tareas entre líneas para reorganizarlas' : 'Haz clic en los números de semana (izquierda) para navegar rápidamente'}</small>
       </div>
 
-      <div className="calendar-with-weeks">
-        {/* Números de semana a la izquierda */}
-        <div className="week-numbers">
-          <div className="week-numbers-header">
-            <span>Sem</span>
-          </div>
-          {visibleWeeks.map((weekNum, index) => (
-            <div 
-              key={index} 
-              className={`week-number ${weekNum === currentWeekNumber ? 'current-week' : ''}`}
-              data-week={weekNum}
-              title={`Semana ${weekNum} del año ${weekNum === currentWeekNumber ? '(Semana actual)' : ''}\nHaz clic para navegar a esta semana`}
-              onClick={() => handleWeekClick(weekNum)}
-            >
+      {/* Renderizar vista especial para P2 o calendario normal para P3 */}
+      {activePlant === 'P2' ? (
+        <P2SwimlanesView 
+          events={state.events}
+          onEventClick={handleSelectEvent}
+        />
+      ) : (
+        <div className="calendar-with-weeks">
+          {/* Números de semana a la izquierda */}
+          <div className="week-numbers">
+            <div className="week-numbers-header">
+              <span>Sem</span>
+            </div>
+            {visibleWeeks.map((weekNum, index) => (
+              <div 
+                key={index} 
+                className={`week-number ${weekNum === currentWeekNumber ? 'current-week' : ''}`}
+                data-week={weekNum}
+                title={`Semana ${weekNum} del año ${weekNum === currentWeekNumber ? '(Semana actual)' : ''}\nHaz clic para navegar a esta semana`}
+                onClick={() => handleWeekClick(weekNum)}
+              >
               {weekNum}
               {weekNum === currentWeekNumber && <span className="current-indicator">●</span>}
             </div>
@@ -524,7 +532,8 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
             draggableAccessor={() => true}
           />
         </div>
-      </div>
+        </div>
+      )}
 
       {state.error && (
         <div className="calendar-error">
