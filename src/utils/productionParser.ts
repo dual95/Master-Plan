@@ -90,11 +90,31 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
     return '';
   };
 
-  // Utilidad para parsear números con comas
+  // Utilidad para parsear números con comas y puntos (soporta formato europeo y americano)
   const parseNumber = (value: any): number => {
     if (typeof value === 'number') return value;
     if (typeof value === 'string') {
-      const cleaned = value.replace(/\./g, '').replace(/,/g, '');
+      // Eliminar espacios y símbolo de dólar
+      let cleaned = value.trim().replace(/\$/g, '');
+      
+      // Detectar formato: si tiene coma como último separador, es formato europeo (1.234,56)
+      // Si tiene punto como último separador, es formato americano (1,234.56)
+      const lastComma = cleaned.lastIndexOf(',');
+      const lastDot = cleaned.lastIndexOf('.');
+      
+      if (lastComma > lastDot) {
+        // Formato europeo: 1.234,56 o 1234,56
+        // Eliminar puntos (separadores de miles) y reemplazar coma por punto
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+      } else if (lastDot > lastComma) {
+        // Formato americano: 1,234.56 o 1234.56
+        // Eliminar comas (separadores de miles)
+        cleaned = cleaned.replace(/,/g, '');
+      } else if (lastComma === -1 && lastDot === -1) {
+        // Sin separadores decimales, número entero
+        // No hacer nada
+      }
+      
       const num = Number(cleaned);
       return isNaN(num) ? 0 : num;
     }
@@ -125,6 +145,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
     PLIEGOS: getColumnValue(['PLIEGOS', 'SHEETS', 'HOJAS'], 'PLIEGOS') !== '' ? parseNumber(getColumnValue(['PLIEGOS', 'SHEETS', 'HOJAS'], 'PLIEGOS')) : 0,
     'MC FECHAS': String(getColumnValue(['MC FECHAS', 'FECHAS'], 'MC FECHAS') || ''),
     UPDATE: String(getColumnValue(['UPDATE', 'ESTADO', 'STATUS'], 'UPDATE') || '').trim().toUpperCase(),
+    '$/UND': getColumnValue(['$/UND', '$ / UND', '$/und', 'PRECIO', 'PRICE', 'UNIT_PRICE', 'PRECIO UNITARIO'], '$/UND') !== '' ? parseNumber(getColumnValue(['$/UND', '$ / UND', '$/und', 'PRECIO', 'PRICE', 'UNIT_PRICE', 'PRECIO UNITARIO'], '$/UND')) : 0,
     IMPRESION: String(row.IMPRESION || row.IMPRESIÓN || row['IMPRESIÓN'] || '').toUpperCase() === 'TRUE',
     BARNIZ: String(row.BARNIZ || '').toUpperCase() === 'TRUE',
     LAMINADO: String(row.LAMINADO || '').toUpperCase() === 'TRUE',
@@ -141,6 +162,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
       COMPONENTE: result.COMPONENTE,
       MATERIAL: result.MATERIAL,
       POS: result.POS,
+      '$/UND': result['$/UND'], // Agregar logging del precio
       processes: {
         IMPRESION: result.IMPRESION,
         BARNIZ: result.BARNIZ,
@@ -148,6 +170,8 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
         TROQUELADO: result.TROQUELADO
       }
     });
+    // Debug adicional: mostrar todas las columnas disponibles
+    console.log('📋 Columnas disponibles en la fila:', Object.keys(row).filter(k => k.includes('$') || k.toLowerCase().includes('precio') || k.toLowerCase().includes('price')));
   }
 
   return result;
@@ -317,8 +341,19 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
       laminado: isProcessRequired(typedRow.LAMINADO),
       estimacion: true,
       proyecto: String(typedRow.PROYECTO || ''),
-      componente: String(typedRow.COMPONENTE || '')
+      componente: String(typedRow.COMPONENTE || ''),
+      unitPrice: parseFloat(String(typedRow['$/UND'] || 0)) // Agregar precio unitario
     };
+    
+    // Debug: verificar unitPrice en ProductionItem
+    if (index <= 2) {
+      console.log(`💰 ProductionItem creado para ${productionItem.pedido}:`, {
+        'typedRow["$/UND"]': typedRow['$/UND'],
+        'String(typedRow["$/UND"])': String(typedRow['$/UND'] || 0),
+        'parseFloat': parseFloat(String(typedRow['$/UND'] || 0)),
+        'productionItem.unitPrice': productionItem.unitPrice
+      });
+    }
 
     items.push(productionItem);
 
@@ -418,6 +453,7 @@ function generateAutomaticTasksForProduct(
       pliegos: item.pliegos,
       proyecto: item.proyecto,
       componente: item.componente,
+      unitPrice: item.unitPrice || 0,
       updateStatus: '' // Las tareas automáticas no tienen estado inicial
     };
 
@@ -441,6 +477,14 @@ function generateAutomaticTasksForProduct(
     };
     
     const ensambleTaskId = `${item.pedido}-ENSAMBLAJE-${item.pos}-${Date.now()}`;
+    
+    // Debug: verificar unitPrice del item
+    console.log(`🔍 Creando tarea ENSAMBLAJE para ${item.pedido}:`, {
+      pedido: item.pedido,
+      proyecto: item.proyecto,
+      'item.unitPrice': item.unitPrice,
+      pos: item.pos
+    });
       
     const ensambleTask: ProductionTask = {
       id: ensambleTaskId,
@@ -475,6 +519,7 @@ function generateAutomaticTasksForProduct(
       proyecto: item.proyecto,
       componente: item.componente,
       linea: assignedLine, // Agregar línea asignada
+      unitPrice: item.unitPrice || 0, // Agregar precio unitario
       updateStatus: '' // Las tareas automáticas no tienen estado inicial
     };
 
@@ -625,6 +670,7 @@ function generateTasksForProduct(
         pliegos: item.pliegos,
         proyecto: item.proyecto,
         componente: item.componente,
+        unitPrice: item.unitPrice || 0,
         updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | ''
       };
 
@@ -680,6 +726,7 @@ function generateTasksForProduct(
       pliegos: item.pliegos,
       proyecto: item.proyecto,
       componente: item.componente,
+      unitPrice: item.unitPrice || 0,
       linea: assignedLine, // Agregar línea asignada
       updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | ''
     };
@@ -767,6 +814,8 @@ export function convertTasksToCalendarEvents(tasks: ProductionTask[]): CalendarE
     proyecto: task.proyecto,
     componente: task.componente,
     planta: task.planta,
+    linea: task.linea,
+    unitPrice: task.unitPrice,
     updateStatus: task.updateStatus
   }));
 }

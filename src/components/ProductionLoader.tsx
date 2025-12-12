@@ -17,12 +17,12 @@ export function ProductionLoader() {
   const [productionPlan, setProductionPlan] = useState<ProductionPlan | null>(null);
   const [showTaskList, setShowTaskList] = useState(false);
   const [availableFiles, setAvailableFiles] = useState<DriveFile[]>([]);
-  const [, setSelectedFile] = useState<DriveFile | null>(null);
+  const [currentFile, setCurrentFile] = useState<DriveFile | null>(null);
   const [availableSheets, setAvailableSheets] = useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<string | null>(null);
   const [spreadsheetData, setSpreadsheetData] = useState<any>(null);
   
-  const { setEvents } = useAppActions();
+  const { setEvents, setSelectedFile } = useAppActions();
 
   // Cargar lista de archivos de Google Drive
   const loadDriveFiles = useCallback(async () => {
@@ -48,7 +48,8 @@ export function ProductionLoader() {
 
   // Procesar archivo seleccionado de Google Drive
   const handleDriveFileSelect = useCallback(async (file: DriveFile) => {
-    setSelectedFile(file);
+    setCurrentFile(file);
+    setSelectedFile(file); // Guardar en contexto global
     setIsProcessing(true);
     setProcessingStatus(`Analizando hojas en ${file.name}...`);
 
@@ -137,7 +138,8 @@ export function ProductionLoader() {
     setProductionPlan(null);
     setShowTaskList(false);
     setProcessingStatus('');
-    setSelectedFile(null);
+    setCurrentFile(null);
+    setSelectedFile(null); // También limpiar del contexto global
     setEvents([]);
   }, [setEvents, setSelectedFile]);
 

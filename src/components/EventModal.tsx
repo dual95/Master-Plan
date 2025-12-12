@@ -25,6 +25,15 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
 
   useEffect(() => {
     if (event) {
+      console.log('📝 EventModal: Abriendo evento:', {
+        id: event.id,
+        title: event.title,
+        pedido: event.pedido,
+        unitPrice: event.unitPrice,
+        esperado: event.esperado,
+        real: event.real,
+        hasUnitPrice: 'unitPrice' in event
+      });
       setFormData(event);
     } else {
       // Limpiar formulario para nuevo evento
@@ -49,7 +58,7 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
 
   const handleChange = (field: keyof CalendarEvent, value: string) => {
     // Convertir a número para campos numéricos
-    if (field === 'esperado' || field === 'real') {
+    if (field === 'esperado' || field === 'real' || field === 'unitPrice') {
       const numValue = value === '' ? undefined : parseFloat(value);
       setFormData(prev => ({
         ...prev,
@@ -230,6 +239,22 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
                 placeholder="Valor real"
               />
             </div>
+          </div>
+
+          {/* Campo de precio unitario */}
+          <div className="form-group">
+            <label htmlFor="unitPrice">💰 $/UND (Precio Unitario)</label>
+            <input
+              id="unitPrice"
+              type="number"
+              step="0.0001"
+              value={formData.unitPrice || ''}
+              onChange={(e) => handleChange('unitPrice', e.target.value)}
+              placeholder="Precio por unidad (desde Excel)"
+            />
+            <small style={{ color: '#666', fontSize: '0.85rem' }}>
+              Este valor se lee automáticamente del Excel. Puedes editarlo manualmente si es necesario.
+            </small>
           </div>
 
           <div className="modal-actions">

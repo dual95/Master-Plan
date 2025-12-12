@@ -11,6 +11,7 @@ import { EventInfoModal } from '../../components/EventInfoModal';
 import { TaskSearch } from '../../components/TaskSearch';
 import { P2SwimlanesView } from './P2SwimlanesView';
 import { persistenceService } from '../../services/persistenceService';
+import { driveService } from '../../services/googleDrive';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import './MasterCalendar.css';
@@ -460,6 +461,8 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
         <P2SwimlanesView 
           events={state.events}
           onEventClick={handleSelectEvent}
+          spreadsheetId={state.selectedFile?.id}
+          accessToken={driveService.getAccessToken() || undefined}
         />
       ) : (
         <div className="calendar-with-weeks">

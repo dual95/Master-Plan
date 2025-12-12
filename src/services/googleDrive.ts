@@ -8,8 +8,8 @@ const DISCOVERY_DOCS = [
 ];
 
 const SCOPES = [
-  'https://www.googleapis.com/auth/drive.readonly',
-  'https://www.googleapis.com/auth/spreadsheets.readonly'
+  'https://www.googleapis.com/auth/drive.file', // Acceso a archivos creados o abiertos por la app
+  'https://www.googleapis.com/auth/spreadsheets' // Acceso completo a Google Sheets (lectura y escritura)
 ];
 
 // Interfaces para Google APIs (mantenido para referencia futura)
@@ -144,7 +144,7 @@ class GoogleDriveService {
     }
   }
 
-  async signIn(): Promise<boolean> {
+  async signIn(forceNewToken: boolean = false): Promise<boolean> {
     try {
       if (!this.isInitialized) {
         console.log('Inicializando Google API...');
@@ -155,9 +155,19 @@ class GoogleDriveService {
         throw new Error('Cliente de tokens no inicializado');
       }
 
-      if (this.accessToken) {
+      // Si ya hay token y no se fuerza renovación, retornar true
+      if (this.accessToken && !forceNewToken) {
         console.log('Ya tienes un token de acceso válido');
         return true;
+      }
+      
+      // Si se fuerza renovación, limpiar token actual
+      if (forceNewToken && this.accessToken) {
+        console.log('🔄 Forzando renovación de token con nuevos permisos...');
+        this.accessToken = null;
+        if (this.gapi.client.getToken()) {
+          this.gapi.client.setToken(null);
+        }
       }
       
       console.log('Iniciando proceso de autenticación...');
@@ -765,6 +775,20 @@ class GoogleDriveService {
     // para obtener la información del usuario. Por ahora retornamos null
     // hasta implementar esa funcionalidad si es necesaria.
     return null;
+  }
+
+  /**
+   * Obtiene el access token actual
+   */
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
+  /**
+   * Verifica si hay un token válido
+   */
+  hasValidToken(): boolean {
+    return this.accessToken !== null;
   }
 }
 

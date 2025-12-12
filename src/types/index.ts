@@ -36,6 +36,7 @@ export interface CalendarEvent {
   planta?: 'P2' | 'P3';
   linea?: string; // MOEX, YOBEL, MELISSA, etc.
   updateStatus?: 'COMPLETED' | 'IN PROCESS' | 'PENDING' | ''; // Estado de la columna UPDATE
+  unitPrice?: number; // Precio unitario ($/UND) - viene del Excel
   
   // Campos manuales (no vienen del Excel)
   esperado?: number; // Valor esperado (manual)
@@ -115,6 +116,7 @@ export interface ProductionItem {
   estimacion: boolean;
   proyecto: string;
   componente: string;
+  unitPrice?: number; // Precio unitario ($/UND)
 }
 
 export interface ProductionProcess {

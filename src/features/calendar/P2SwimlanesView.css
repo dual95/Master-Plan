@@ -16,12 +16,21 @@
   background: white;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 .header-left {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.header-right {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .swimlanes-header h2 {
@@ -92,6 +101,95 @@
   color: white;
   border-color: #2980b9;
 }
+
+/* Botón de exportación */
+.export-button {
+  padding: 10px 20px;
+  border: 2px solid #27ae60;
+  background: linear-gradient(135deg, #27ae60, #229954);
+  color: white;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.export-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #229954, #1e8449);
+  border-color: #1e8449;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.export-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Botón de renovar permisos */
+.refresh-permissions-button {
+  padding: 10px 20px;
+  border: 2px solid #f39c12;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.refresh-permissions-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e67e22, #d35400);
+  border-color: #d35400;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.refresh-permissions-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Mensaje de exportación */
+.export-message {
+  padding: 15px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  animation: slideDown 0.3s ease-out;
+}
+
+.export-message.success {
+  background: #d4edda;
+  color: #155724;
+  border: 2px solid #c3e6cb;
+}
+
+.export-message.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 2px solid #f5c6cb;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 /* Estadísticas */
 .p2-stats {

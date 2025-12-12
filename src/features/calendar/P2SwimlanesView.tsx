@@ -3,6 +3,8 @@ import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay }
 import { es } from 'date-fns/locale';
 import type { CalendarEvent } from '../../types';
 import { useAppActions } from '../../hooks/useApp';
+import { exportToLookerStudio } from '../../services/lookerStudioExport';
+import { driveService } from '../../services/googleDrive';
 import './P2SwimlanesView.css';
 
 // Líneas de ensamblaje de Planta 2
@@ -12,13 +14,17 @@ type P2Line = typeof P2_LINES[number];
 interface P2SwimlanesViewProps {
   events: CalendarEvent[];
   onEventClick?: (event: CalendarEvent) => void;
+  spreadsheetId?: string;
+  accessToken?: string;
 }
 
-export function P2SwimlanesView({ events, onEventClick }: P2SwimlanesViewProps) {
+export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessToken }: P2SwimlanesViewProps) {
   const { updateEvent } = useAppActions();
   const [draggedTask, setDraggedTask] = useState<CalendarEvent | null>(null);
   const [dateFilter, setDateFilter] = useState<'week' | 'month'>('week');
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { locale: es, weekStartsOn: 1 }));
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Calcular rango de fechas a mostrar
   const dateRange = useMemo(() => {
@@ -181,6 +187,95 @@ export function P2SwimlanesView({ events, onEventClick }: P2SwimlanesViewProps) 
     return '#9e9e9e';
   };
 
+  // Handler para exportar a Looker Studio
+  const handleExportToLookerStudio = useCallback(async () => {
+    if (!spreadsheetId) {
+      setExportMessage({
+        type: 'error',
+        text: 'No hay un archivo de Google Sheets conectado. Por favor, conecta primero un archivo.'
+      });
+      setTimeout(() => setExportMessage(null), 5000);
+      return;
+    }
+
+    setIsExporting(true);
+    setExportMessage(null);
+
+    try {
+      // Obtener token actual
+      let currentToken = accessToken || driveService.getAccessToken();
+      
+      if (!currentToken) {
+        setExportMessage({
+          type: 'error',
+          text: '❌ No hay token de acceso. Por favor, conecta con Google Drive primero.'
+        });
+        setIsExporting(false);
+        setTimeout(() => setExportMessage(null), 5000);
+        return;
+      }
+
+      // Primer intento de exportación
+      let result = await exportToLookerStudio(spreadsheetId, events, currentToken);
+      
+      // Si falla por permisos, renovar token y reintentar
+      if (!result.success && (result.message.includes('403') || result.message.includes('insufficient'))) {
+        setExportMessage({
+          type: 'error',
+          text: '🔄 Permisos insuficientes. Renovando permisos...'
+        });
+        
+        // Renovar token con nuevos permisos
+        const renewed = await driveService.signIn(true);
+        
+        if (renewed) {
+          // Obtener nuevo token y reintentar
+          currentToken = driveService.getAccessToken();
+          if (currentToken) {
+            setExportMessage({
+              type: 'success',
+              text: '✅ Permisos renovados. Reintentando exportación...'
+            });
+            
+            // Segundo intento con nuevo token
+            result = await exportToLookerStudio(spreadsheetId, events, currentToken);
+          }
+        } else {
+          setExportMessage({
+            type: 'error',
+            text: '❌ No se pudieron renovar los permisos. Intenta conectar de nuevo con Google Drive.'
+          });
+          setIsExporting(false);
+          setTimeout(() => setExportMessage(null), 8000);
+          return;
+        }
+      }
+      
+      // Mostrar resultado final
+      if (result.success) {
+        setExportMessage({
+          type: 'success',
+          text: result.message
+        });
+      } else {
+        setExportMessage({
+          type: 'error',
+          text: result.message
+        });
+      }
+    } catch (error) {
+      setExportMessage({
+        type: 'error',
+        text: `Error al exportar: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      });
+    } finally {
+      setIsExporting(false);
+      setTimeout(() => setExportMessage(null), 8000);
+    }
+  }, [spreadsheetId, accessToken, events]);
+
+
+
   const p2Events = events.filter(e => e.planta === 'P2');
   const today = new Date();
 
@@ -196,21 +291,38 @@ export function P2SwimlanesView({ events, onEventClick }: P2SwimlanesViewProps) 
             <button onClick={goToNextWeek} className="nav-button">Siguiente ▶</button>
           </div>
         </div>
-        <div className="date-filters">
+        <div className="header-right">
+          <div className="date-filters">
+            <button
+              className={dateFilter === 'week' ? 'active' : ''}
+              onClick={() => setDateFilter('week')}
+            >
+              📅 Semana
+            </button>
+            <button
+              className={dateFilter === 'month' ? 'active' : ''}
+              onClick={() => setDateFilter('month')}
+            >
+              📊 Mes (4 sem)
+            </button>
+          </div>
           <button
-            className={dateFilter === 'week' ? 'active' : ''}
-            onClick={() => setDateFilter('week')}
+            onClick={handleExportToLookerStudio}
+            disabled={isExporting}
+            className="export-button"
+            title="Exportar datos a hoja LOOKERSTUDIO (renueva permisos automáticamente si es necesario)"
           >
-            📅 Semana
-          </button>
-          <button
-            className={dateFilter === 'month' ? 'active' : ''}
-            onClick={() => setDateFilter('month')}
-          >
-            📊 Mes (4 sem)
+            {isExporting ? '⏳ Exportando...' : '📤 Exportar a Looker Studio'}
           </button>
         </div>
       </div>
+
+      {/* Mensaje de exportación */}
+      {exportMessage && (
+        <div className={`export-message ${exportMessage.type}`}>
+          {exportMessage.type === 'success' ? '✅' : '❌'} {exportMessage.text}
+        </div>
+      )}
 
       {/* Estadísticas generales */}
       <div className="p2-stats">
