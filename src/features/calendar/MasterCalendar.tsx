@@ -317,8 +317,10 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
         backgroundColor = '#4caf50'; // Verde para completado
       } else if (event.updateStatus === 'IN PROCESS') {
         backgroundColor = '#ff9800'; // Naranja para en proceso
-      } else if (event.updateStatus === 'PENDING' || event.updateStatus === '') {
-        backgroundColor = '#9e9e9e'; // Gris para pendiente o sin estado
+      } else if (event.updateStatus === 'CANCELED' || event.updateStatus === 'CANCELLED') {
+        backgroundColor = '#f44336'; // Rojo para cancelado
+      } else if (event.updateStatus === 'PENDING') {
+        backgroundColor = '#9e9e9e'; // Gris para pendiente
       }
     } else {
       // Si no hay updateStatus, usar prioridad

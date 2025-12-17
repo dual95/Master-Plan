@@ -198,7 +198,7 @@ export function P3SwimlanesView({ events, onEventClick }: P3SwimlanesViewProps) 
   const getTaskColor = (task: CalendarEvent) => {
     // Normalizar updateStatus a mayúsculas para comparación
     const updateStatus = task.updateStatus?.toUpperCase().trim() || '';
-    const status = task.status || '';
+    const status = (task.status || '') as string;
     
     // Debug: mostrar el estado en consola
     if (updateStatus || status) {
