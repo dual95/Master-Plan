@@ -10,6 +10,7 @@ import { EventModal } from '../../components/EventModal';
 import { EventInfoModal } from '../../components/EventInfoModal';
 import { TaskSearch } from '../../components/TaskSearch';
 import { P2SwimlanesView } from './P2SwimlanesView';
+import { P3SwimlanesView } from './P3SwimlanesView';
 import { persistenceService } from '../../services/persistenceService';
 import { driveService } from '../../services/googleDrive';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -453,11 +454,16 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
       </div>
 
       <div className="calendar-info">
-        <small>💡 <strong>Tip:</strong> {activePlant === 'P2' ? 'Arrastra las tareas entre líneas para reorganizarlas' : 'Haz clic en los números de semana (izquierda) para navegar rápidamente'}</small>
+        <small>💡 <strong>Tip:</strong> {activePlant === 'P3' ? 'Arrastra las tareas entre procesos para reorganizarlas' : 'Arrastra las tareas entre líneas para reorganizarlas'}</small>
       </div>
 
-      {/* Renderizar vista especial para P2 o calendario normal para P3 */}
-      {activePlant === 'P2' ? (
+      {/* Renderizar vistas especiales para P2 y P3 */}
+      {activePlant === 'P3' ? (
+        <P3SwimlanesView 
+          events={state.events}
+          onEventClick={handleSelectEvent}
+        />
+      ) : activePlant === 'P2' ? (
         <P2SwimlanesView 
           events={state.events}
           onEventClick={handleSelectEvent}
@@ -536,7 +542,8 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
           />
         </div>
         </div>
-      )}
+      )
+      }
 
       {state.error && (
         <div className="calendar-error">

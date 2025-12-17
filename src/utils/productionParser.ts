@@ -31,6 +31,7 @@ export const STANDARD_PROCESSES: ProcessConfiguration = {
 // Mapeo de máquinas por proceso y planta
 export const MACHINE_MAPPING = {
   P3: { // Planta de Producción
+    'RESMADO': ['RESMADO_01', 'RESMADO_02'],
     'IMPRESION': ['IMPRESION_01', 'IMPRESION_02', 'IMPRESION_03'],
     'BARNIZ': ['BARNIZ_01', 'BARNIZ_02'],
     'LAMINADO': ['LAMINADO_01', 'LAMINADO_02'],
@@ -55,6 +56,7 @@ export interface ProductionSpreadsheetRow {
   'CTD PEDIDO': number;
   PLIEGOS: number;
   'MC FECHAS': string;
+  RESMADO?: boolean; // Opcional - nuevo proceso
   IMPRESION: boolean;
   BARNIZ: boolean;
   LAMINADO: boolean;
@@ -267,7 +269,7 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
   console.log(`🔍 Filas válidas para procesar: ${validRows.length} de ${spreadsheetRows.length}`);
   
   // Procesos disponibles en el Excel
-  const processColumns = ['IMPRESION', 'BARNIZ', 'LAMINADO', 'ESTAMPADO', 'REALZADO', 'TROQUELADO'];
+  const processColumns = ['RESMADO', 'IMPRESION', 'BARNIZ', 'LAMINADO', 'ESTAMPADO', 'REALZADO', 'TROQUELADO'];
   
   // Mapear nombres de columnas de procesos con tildes
   const getProcessValue = (row: any, processName: string): boolean => {
@@ -597,14 +599,14 @@ function getAutomaticProcessesByMaterial(material: string): string[] {
   const materialUpper = material.toUpperCase();
   
   if (materialUpper.includes('PP')) {
-    return ['IMPRESION', 'TROQUELADO'];
+    return ['RESMADO', 'IMPRESION', 'TROQUELADO'];
   } else if (materialUpper.includes('COUCHE')) {
-    return ['IMPRESION', 'BARNIZ', 'TROQUELADO'];
+    return ['RESMADO', 'IMPRESION', 'BARNIZ', 'TROQUELADO'];
   } else if (materialUpper.includes('CMPC')) {
-    return ['IMPRESION', 'LAMINADO', 'TROQUELADO'];
+    return ['RESMADO', 'IMPRESION', 'LAMINADO', 'TROQUELADO'];
   } else {
     // Default para cualquier material
-    return ['IMPRESION', 'TROQUELADO'];
+    return ['RESMADO', 'IMPRESION', 'TROQUELADO'];
   }
 }
 
@@ -671,7 +673,7 @@ function generateTasksForProduct(
         proyecto: item.proyecto,
         componente: item.componente,
         unitPrice: item.unitPrice || 0,
-        updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | ''
+        updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | 'CANCELED' | 'CANCELLED' | ''
       };
 
       tasks.push(task);
@@ -728,7 +730,7 @@ function generateTasksForProduct(
       componente: item.componente,
       unitPrice: item.unitPrice || 0,
       linea: assignedLine, // Agregar línea asignada
-      updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | ''
+      updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | 'CANCELED' | 'CANCELLED' | ''
     };
 
     tasks.push(ensambleTask);
@@ -769,6 +771,7 @@ function getDefaultMachineForProcess(processType: string): string {
  */
 function estimateProcessDuration(processType: string, pliegos: number, cantidad: number): number {
   const baseDurations: Record<string, number> = {
+    resmado: 0.2, // horas por cada 100 pliegos - proceso rápido
     impresion: 0.5, // horas por cada 100 pliegos
     barniz: 0.3,
     laminado: 0.4,

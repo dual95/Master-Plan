@@ -3,7 +3,6 @@
   padding: 20px;
   background: #f5f7fa;
   border-radius: 12px;
-  min-height: 600px;
 }
 
 /* Header */
@@ -242,7 +241,7 @@
 /* Timeline Header (Fechas) */
 .timeline-header {
   display: grid;
-  grid-template-columns: 150px repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: 150px repeat(7, 1fr);
   position: sticky;
   top: 0;
   background: white;
@@ -289,8 +288,7 @@
 }
 
 .date-cell.weekend {
-  background: #fafafa;
-  color: #999;
+  /* Same styling as regular days */
 }
 
 .date-day {
@@ -323,7 +321,7 @@
 /* Timeline Row (Línea) */
 .timeline-row {
   display: grid;
-  grid-template-columns: 150px repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: 150px repeat(7, 1fr);
   border-bottom: 1px solid #e0e0e0;
   min-height: 100px;
   transition: background 0.2s ease;
@@ -411,7 +409,7 @@
 }
 
 .day-cell.weekend {
-  background: #fafafa;
+  /* Same styling as regular days */
 }
 
 /* Timeline Task (Tarea en el timeline) */
@@ -655,7 +653,7 @@
 @media (max-width: 1600px) {
   .timeline-header,
   .timeline-row {
-    grid-template-columns: 120px repeat(auto-fit, minmax(70px, 1fr));
+    grid-template-columns: 120px repeat(7, 1fr);
   }
 
   .line-label-cell,
@@ -691,7 +689,7 @@
 
   .timeline-header,
   .timeline-row {
-    grid-template-columns: 100px repeat(auto-fit, minmax(60px, 1fr));
+    grid-template-columns: 100px repeat(7, 1fr);
   }
 
   .line-label-cell,

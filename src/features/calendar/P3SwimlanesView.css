@@ -1,0 +1,408 @@
+/* P3 Swimlanes View - Procesos de Producción */
+
+.p3-swimlanes-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+}
+
+/* Header con controles */
+.swimlanes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header-left h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #2e7d32;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.week-navigation {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-button,
+.today-button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.nav-button:hover {
+  background: #f5f5f5;
+  border-color: #4caf50;
+}
+
+.today-button {
+  background: #4caf50;
+  color: white;
+  border-color: #4caf50;
+  font-weight: 600;
+}
+
+.today-button:hover {
+  background: #388e3c;
+}
+
+.header-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.date-filters {
+  display: flex;
+  gap: 8px;
+  background: #f5f5f5;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.date-filters button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.date-filters button.active {
+  background: #4caf50;
+  color: white;
+  font-weight: 600;
+}
+
+.date-filters button:not(.active):hover {
+  background: #e0e0e0;
+}
+
+/* Estadísticas generales P3 */
+.p3-stats {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+.stat-card {
+  background: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+.stat-value.completed {
+  color: #4caf50;
+}
+
+.stat-value.pending {
+  color: #ff9800;
+}
+
+/* Timeline horizontal */
+.timeline-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+/* Header de fechas */
+.timeline-header {
+  display: grid;
+  grid-template-columns: 180px repeat(7, 1fr);
+  border-bottom: 3px solid #4caf50;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+.line-label-cell {
+  padding: 16px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #2e7d32;
+  border-right: 2px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f8e9;
+}
+
+.date-cell {
+  padding: 12px;
+  text-align: center;
+  border-right: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #fafafa;
+}
+
+.date-cell.today {
+  background: #e8f5e9;
+  border: 2px solid #4caf50;
+  font-weight: 700;
+}
+
+.date-cell.weekend {
+  /* Same styling as regular days */
+}
+
+.date-day {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.date-number {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+.date-month {
+  font-size: 10px;
+  color: #999;
+  text-transform: uppercase;
+}
+
+/* Filas de procesos */
+.timeline-row {
+  display: grid;
+  grid-template-columns: 180px repeat(7, 1fr);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.timeline-row:hover {
+  background: #fafafa;
+}
+
+/* Etiqueta de proceso */
+.line-label {
+  padding: 16px;
+  border-right: 2px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  background: #f9fbe7;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+}
+
+.line-label h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #2e7d32;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.line-stats-mini {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.stat-mini {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  background: #e0e0e0;
+  color: #666;
+}
+
+.stat-mini.total {
+  background: #bbdefb;
+  color: #1976d2;
+}
+
+.stat-mini.completed {
+  background: #c8e6c9;
+  color: #388e3c;
+}
+
+.stat-mini.pending {
+  background: #ffe0b2;
+  color: #f57c00;
+}
+
+/* Celdas de días */
+.day-cell {
+  min-height: 80px;
+  padding: 8px;
+  border-right: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  transition: background-color 0.2s;
+}
+
+.day-cell.today {
+  background: #f1f8e9;
+}
+
+.day-cell.weekend {
+  /* Same styling as regular days */
+}
+
+.day-cell:hover {
+  background: #e8f5e9 !important;
+}
+
+/* Tareas en el timeline */
+.timeline-task {
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: grab;
+  font-size: 11px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+  position: relative;
+}
+
+.timeline-task:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.timeline-task:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.timeline-task.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.task-title-mini {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-pos-mini {
+  font-size: 9px;
+  opacity: 0.9;
+}
+
+/* Leyenda */
+.swimlanes-legend {
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.swimlanes-legend h4 {
+  margin: 0 0 12px 0;
+  color: #2e7d32;
+  font-size: 14px;
+}
+
+.swimlanes-legend ul {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.swimlanes-legend li {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .timeline-header,
+  .timeline-row {
+    grid-template-columns: 140px repeat(7, 1fr);
+  }
+
+  .line-label-cell,
+  .line-label {
+    padding: 12px;
+  }
+
+  .date-cell {
+    padding: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .swimlanes-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .p3-stats {
+    flex-wrap: wrap;
+  }
+
+  .timeline-header,
+  .timeline-row {
+    grid-template-columns: 100px repeat(7, 1fr);
+  }
+
+  .date-number {
+    font-size: 16px;
+  }
+
+  .line-label h4 {
+    font-size: 11px;
+  }
+}

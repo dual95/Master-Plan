@@ -3,28 +3,22 @@ import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay }
 import { es } from 'date-fns/locale';
 import type { CalendarEvent } from '../../types';
 import { useAppActions } from '../../hooks/useApp';
-import { exportToLookerStudio } from '../../services/lookerStudioExport';
-import { driveService } from '../../services/googleDrive';
-import './P2SwimlanesView.css';
+import './P3SwimlanesView.css';
 
-// Líneas de ensamblaje de Planta 2
-const P2_LINES = ['MOEX', 'YOBEL', 'MELISSA', 'CAJA 1', 'CAJA 2', 'CAJA 3'] as const;
-type P2Line = typeof P2_LINES[number];
+// Procesos de Planta 3
+const P3_PROCESSES = ['RESMADO', 'IMPRESIÓN', 'BARNIZ', 'LAMINADO', 'ESTAMPADO', 'REALZADO', 'TROQUELADO'] as const;
+type P3Process = typeof P3_PROCESSES[number];
 
-interface P2SwimlanesViewProps {
+interface P3SwimlanesViewProps {
   events: CalendarEvent[];
   onEventClick?: (event: CalendarEvent) => void;
-  spreadsheetId?: string;
-  accessToken?: string;
 }
 
-export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessToken }: P2SwimlanesViewProps) {
+export function P3SwimlanesView({ events, onEventClick }: P3SwimlanesViewProps) {
   const { updateEvent } = useAppActions();
   const [draggedTask, setDraggedTask] = useState<CalendarEvent | null>(null);
   const [dateFilter, setDateFilter] = useState<'week' | 'month'>('week');
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { locale: es, weekStartsOn: 1 }));
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportMessage, setExportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Calcular rango de fechas a mostrar
   const dateRange = useMemo(() => {
@@ -40,59 +34,83 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     }
   }, [dateFilter, currentWeekStart]);
 
-  // Filtrar tareas de P2 y agrupar por línea y fecha
-  const tasksByLineAndDate = useMemo(() => {
-    const p2Tasks = events.filter(e => e.planta === 'P2');
+  // Filtrar tareas de P3 y agrupar por proceso y fecha
+  const tasksByProcessAndDate = useMemo(() => {
+    const p3Tasks = events.filter(e => e.planta === 'P3');
     
-    const grouped: Record<P2Line, Record<string, CalendarEvent[]>> = {
-      'MOEX': {},
-      'YOBEL': {},
-      'MELISSA': {},
-      'CAJA 1': {},
-      'CAJA 2': {},
-      'CAJA 3': {}
+    const grouped: Record<P3Process, Record<string, CalendarEvent[]>> = {
+      'RESMADO': {},
+      'IMPRESIÓN': {},
+      'BARNIZ': {},
+      'LAMINADO': {},
+      'ESTAMPADO': {},
+      'REALZADO': {},
+      'TROQUELADO': {}
     };
 
     // Inicializar todos los días con arrays vacíos
-    P2_LINES.forEach(line => {
+    P3_PROCESSES.forEach(process => {
       dateRange.forEach(date => {
         const dateKey = format(date, 'yyyy-MM-dd');
-        grouped[line][dateKey] = [];
+        grouped[process][dateKey] = [];
       });
     });
 
-    // Agrupar tareas por línea y fecha
-    p2Tasks.forEach(event => {
-      const line = (event.linea || event.machine || 'MOEX') as P2Line;
+    // Agrupar tareas por proceso y fecha
+    p3Tasks.forEach(event => {
+      const processType = event.processType?.toUpperCase() || event.category?.toUpperCase() || 'IMPRESIÓN';
+      
+      // Normalizar nombres de procesos
+      let process: P3Process = 'IMPRESIÓN';
+      if (processType.includes('RESMA')) process = 'RESMADO';
+      else if (processType.includes('IMPRES')) process = 'IMPRESIÓN';
+      else if (processType.includes('BARNIZ')) process = 'BARNIZ';
+      else if (processType.includes('LAMINAD')) process = 'LAMINADO';
+      else if (processType.includes('ESTAMPA')) process = 'ESTAMPADO';
+      else if (processType.includes('REALZA')) process = 'REALZADO';
+      else if (processType.includes('TROQUEL')) process = 'TROQUELADO';
+      
       const eventDate = new Date(event.start);
       const dateKey = format(eventDate, 'yyyy-MM-dd');
       
-      if (line in grouped && dateKey in grouped[line]) {
-        grouped[line][dateKey].push(event);
+      if (process in grouped && dateKey in grouped[process]) {
+        grouped[process][dateKey].push(event);
       }
     });
 
     return grouped;
   }, [events, dateRange]);
 
-  // Calcular estadísticas por línea
-  const lineStats = useMemo(() => {
-    const p2Tasks = events.filter(e => e.planta === 'P2');
-    const stats: Record<P2Line, { total: number; completed: number; pending: number }> = {
-      'MOEX': { total: 0, completed: 0, pending: 0 },
-      'YOBEL': { total: 0, completed: 0, pending: 0 },
-      'MELISSA': { total: 0, completed: 0, pending: 0 },
-      'CAJA 1': { total: 0, completed: 0, pending: 0 },
-      'CAJA 2': { total: 0, completed: 0, pending: 0 },
-      'CAJA 3': { total: 0, completed: 0, pending: 0 }
+  // Calcular estadísticas por proceso
+  const processStats = useMemo(() => {
+    const p3Tasks = events.filter(e => e.planta === 'P3');
+    const stats: Record<P3Process, { total: number; completed: number; pending: number }> = {
+      'RESMADO': { total: 0, completed: 0, pending: 0 },
+      'IMPRESIÓN': { total: 0, completed: 0, pending: 0 },
+      'BARNIZ': { total: 0, completed: 0, pending: 0 },
+      'LAMINADO': { total: 0, completed: 0, pending: 0 },
+      'ESTAMPADO': { total: 0, completed: 0, pending: 0 },
+      'REALZADO': { total: 0, completed: 0, pending: 0 },
+      'TROQUELADO': { total: 0, completed: 0, pending: 0 }
     };
 
-    p2Tasks.forEach(task => {
-      const line = (task.linea || task.machine || 'MOEX') as P2Line;
-      if (line in stats) {
-        stats[line].total++;
-        if (task.status === 'completed') stats[line].completed++;
-        if (task.status === 'pending') stats[line].pending++;
+    p3Tasks.forEach(task => {
+      const processType = task.processType?.toUpperCase() || task.category?.toUpperCase() || 'IMPRESIÓN';
+      
+      // Normalizar nombres de procesos
+      let process: P3Process = 'IMPRESIÓN';
+      if (processType.includes('RESMA')) process = 'RESMADO';
+      else if (processType.includes('IMPRES')) process = 'IMPRESIÓN';
+      else if (processType.includes('BARNIZ')) process = 'BARNIZ';
+      else if (processType.includes('LAMINAD')) process = 'LAMINADO';
+      else if (processType.includes('ESTAMPA')) process = 'ESTAMPADO';
+      else if (processType.includes('REALZA')) process = 'REALZADO';
+      else if (processType.includes('TROQUEL')) process = 'TROQUELADO';
+      
+      if (process in stats) {
+        stats[process].total++;
+        if (task.status === 'completed') stats[process].completed++;
+        if (task.status === 'pending') stats[process].pending++;
       }
     });
 
@@ -102,7 +120,6 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
   // Drag & Drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, event: CalendarEvent) => {
     e.stopPropagation();
-    // Importante: establecer efectos permitidos para el drag
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', event.id);
     setDraggedTask(event);
@@ -114,13 +131,12 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent, targetLine: P2Line, targetDate: Date) => {
+  const handleDrop = useCallback((e: React.DragEvent, targetProcess: P3Process, targetDate: Date) => {
     e.preventDefault();
     e.stopPropagation();
     
     if (!draggedTask) return;
 
-    // Verificar que el evento arrastrado es el correcto
     const draggedId = e.dataTransfer.getData('text/plain');
     if (draggedId !== draggedTask.id) {
       console.warn('Mismatch between dragged task IDs');
@@ -137,11 +153,11 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     const duration = oldEnd.getTime() - oldDate.getTime();
     const newEnd = new Date(newStart.getTime() + duration);
 
-    // Actualizar la línea y fecha de la tarea
+    // Actualizar el proceso y fecha de la tarea
     const updatedEvent: CalendarEvent = {
       ...draggedTask,
-      linea: targetLine,
-      machine: targetLine,
+      processType: targetProcess,
+      category: targetProcess,
       start: newStart.toISOString(),
       end: newEnd.toISOString()
     };
@@ -186,7 +202,7 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     
     // Debug: mostrar el estado en consola
     if (updateStatus || status) {
-      console.log('P2 Task:', task.title, 'UpdateStatus:', updateStatus, 'Status:', status);
+      console.log('P3 Task:', task.title, 'UpdateStatus:', updateStatus, 'Status:', status);
     }
     
     // Prioridad a updateStatus de la columna UPDATE
@@ -202,104 +218,15 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     return '#9e9e9e'; // Gris
   };
 
-  // Handler para exportar a Looker Studio
-  const handleExportToLookerStudio = useCallback(async () => {
-    if (!spreadsheetId) {
-      setExportMessage({
-        type: 'error',
-        text: 'No hay un archivo de Google Sheets conectado. Por favor, conecta primero un archivo.'
-      });
-      setTimeout(() => setExportMessage(null), 5000);
-      return;
-    }
-
-    setIsExporting(true);
-    setExportMessage(null);
-
-    try {
-      // Obtener token actual
-      let currentToken = accessToken || driveService.getAccessToken();
-      
-      if (!currentToken) {
-        setExportMessage({
-          type: 'error',
-          text: '❌ No hay token de acceso. Por favor, conecta con Google Drive primero.'
-        });
-        setIsExporting(false);
-        setTimeout(() => setExportMessage(null), 5000);
-        return;
-      }
-
-      // Primer intento de exportación
-      let result = await exportToLookerStudio(spreadsheetId, events, currentToken);
-      
-      // Si falla por permisos, renovar token y reintentar
-      if (!result.success && (result.message.includes('403') || result.message.includes('insufficient'))) {
-        setExportMessage({
-          type: 'error',
-          text: '🔄 Permisos insuficientes. Renovando permisos...'
-        });
-        
-        // Renovar token con nuevos permisos
-        const renewed = await driveService.signIn(true);
-        
-        if (renewed) {
-          // Obtener nuevo token y reintentar
-          currentToken = driveService.getAccessToken();
-          if (currentToken) {
-            setExportMessage({
-              type: 'success',
-              text: '✅ Permisos renovados. Reintentando exportación...'
-            });
-            
-            // Segundo intento con nuevo token
-            result = await exportToLookerStudio(spreadsheetId, events, currentToken);
-          }
-        } else {
-          setExportMessage({
-            type: 'error',
-            text: '❌ No se pudieron renovar los permisos. Intenta conectar de nuevo con Google Drive.'
-          });
-          setIsExporting(false);
-          setTimeout(() => setExportMessage(null), 8000);
-          return;
-        }
-      }
-      
-      // Mostrar resultado final
-      if (result.success) {
-        setExportMessage({
-          type: 'success',
-          text: result.message
-        });
-      } else {
-        setExportMessage({
-          type: 'error',
-          text: result.message
-        });
-      }
-    } catch (error) {
-      setExportMessage({
-        type: 'error',
-        text: `Error al exportar: ${error instanceof Error ? error.message : 'Error desconocido'}`
-      });
-    } finally {
-      setIsExporting(false);
-      setTimeout(() => setExportMessage(null), 8000);
-    }
-  }, [spreadsheetId, accessToken, events]);
-
-
-
-  const p2Events = events.filter(e => e.planta === 'P2');
+  const p3Events = events.filter(e => e.planta === 'P3');
   const today = new Date();
 
   return (
-    <div className="p2-swimlanes-container">
+    <div className="p3-swimlanes-container">
       {/* Header con navegación y filtros */}
       <div className="swimlanes-header">
         <div className="header-left">
-          <h2>🏭 Planta 2 - Líneas de Ensamblaje</h2>
+          <h2>🏭 Planta 3 - Procesos de Producción</h2>
           <div className="week-navigation">
             <button onClick={goToPreviousWeek} className="nav-button">◀ Anterior</button>
             <button onClick={goToToday} className="today-button">📍 Hoy</button>
@@ -321,37 +248,22 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
               📊 Mes (4 sem)
             </button>
           </div>
-          <button
-            onClick={handleExportToLookerStudio}
-            disabled={isExporting}
-            className="export-button"
-            title="Exportar datos a hoja LOOKERSTUDIO (renueva permisos automáticamente si es necesario)"
-          >
-            {isExporting ? '⏳ Exportando...' : '📤 Exportar a Looker Studio'}
-          </button>
         </div>
       </div>
 
-      {/* Mensaje de exportación */}
-      {exportMessage && (
-        <div className={`export-message ${exportMessage.type}`}>
-          {exportMessage.type === 'success' ? '✅' : '❌'} {exportMessage.text}
-        </div>
-      )}
-
       {/* Estadísticas generales */}
-      <div className="p2-stats">
+      <div className="p3-stats">
         <div className="stat-card">
-          <span className="stat-label">Total Tareas P2:</span>
-          <span className="stat-value">{p2Events.length}</span>
+          <span className="stat-label">Total Tareas P3:</span>
+          <span className="stat-value">{p3Events.length}</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Completadas:</span>
-          <span className="stat-value completed">{p2Events.filter(e => e.status === 'completed').length}</span>
+          <span className="stat-value completed">{p3Events.filter(e => e.status === 'completed').length}</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Pendientes:</span>
-          <span className="stat-value pending">{p2Events.filter(e => e.status === 'pending').length}</span>
+          <span className="stat-value pending">{p3Events.filter(e => e.status === 'pending').length}</span>
         </div>
       </div>
 
@@ -359,7 +271,7 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
       <div className="timeline-container">
         {/* Header de fechas */}
         <div className="timeline-header">
-          <div className="line-label-cell">Línea</div>
+          <div className="line-label-cell">Proceso</div>
           {dateRange.map((date, index) => {
             const isToday = isSameDay(date, today);
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
@@ -377,23 +289,23 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
           })}
         </div>
 
-        {/* Líneas con tareas */}
-        {P2_LINES.map(line => (
-          <div key={line} className="timeline-row">
-            {/* Etiqueta de línea */}
+        {/* Filas de procesos con tareas */}
+        {P3_PROCESSES.map(process => (
+          <div key={process} className="timeline-row">
+            {/* Etiqueta de proceso */}
             <div className="line-label">
-              <h4>{line}</h4>
+              <h4>{process}</h4>
               <div className="line-stats-mini">
-                <span className="stat-mini total" title="Total">{lineStats[line].total}</span>
-                <span className="stat-mini completed" title="Completadas">{lineStats[line].completed}</span>
-                <span className="stat-mini pending" title="Pendientes">{lineStats[line].pending}</span>
+                <span className="stat-mini total" title="Total">{processStats[process].total}</span>
+                <span className="stat-mini completed" title="Completadas">{processStats[process].completed}</span>
+                <span className="stat-mini pending" title="Pendientes">{processStats[process].pending}</span>
               </div>
             </div>
 
             {/* Celdas de días */}
             {dateRange.map((date, dateIndex) => {
               const dateKey = format(date, 'yyyy-MM-dd');
-              const tasksForDay = tasksByLineAndDate[line][dateKey] || [];
+              const tasksForDay = tasksByProcessAndDate[process][dateKey] || [];
               const isToday = isSameDay(date, today);
               const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
@@ -402,7 +314,7 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
                   key={dateIndex}
                   className={`day-cell ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}
                   onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, line, date)}
+                  onDrop={(e) => handleDrop(e, process, date)}
                 >
                   {tasksForDay.map(task => (
                     <div
@@ -416,7 +328,7 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
                       style={{
                         backgroundColor: getTaskColor(task),
                       }}
-                      title={`${task.title}\nPO: ${task.pedido || '-'}\nPOS: ${task.pos || '-'}\nQTY: ${task.quantity || '-'}\nClick para editar`}
+                      title={`${task.title}\nPO: ${task.pedido || '-'}\nPOS: ${task.pos || '-'}\nPLIEGOS: ${task.pliegos || '-'}\nClick para editar`}
                     >
                       <span className="task-title-mini">{task.title}</span>
                       {task.pos && <span className="task-pos-mini">#{task.pos}</span>}
@@ -433,7 +345,7 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
       <div className="swimlanes-legend">
         <h4>💡 Cómo usar:</h4>
         <ul>
-          <li>🖱️ Arrastra las tareas entre celdas para cambiar de línea y/o fecha</li>
+          <li>🖱️ Arrastra las tareas entre celdas para cambiar de proceso y/o fecha</li>
           <li>✏️ Haz click en una tarea para editarla</li>
           <li>📅 Usa los botones de navegación y filtros de fecha arriba</li>
           <li>🎨 Los colores indican el estado: 🔴 Rojo (Cancelado), 🟢 Verde (Completado), 🟡 Amarillo (En Proceso), ⚪ Gris (Pendiente)</li>

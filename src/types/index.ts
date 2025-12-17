@@ -35,7 +35,7 @@ export interface CalendarEvent {
   componente?: string;
   planta?: 'P2' | 'P3';
   linea?: string; // MOEX, YOBEL, MELISSA, etc.
-  updateStatus?: 'COMPLETED' | 'IN PROCESS' | 'PENDING' | ''; // Estado de la columna UPDATE
+  updateStatus?: 'COMPLETED' | 'IN PROCESS' | 'PENDING' | 'CANCELED' | 'CANCELLED' | ''; // Estado de la columna UPDATE
   unitPrice?: number; // Precio unitario ($/UND) - viene del Excel
   
   // Campos manuales (no vienen del Excel)

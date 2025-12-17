@@ -207,10 +207,17 @@ export function TaskSearch() {
                         </div>
                       )}
                       
-                      {result.event.machine && (
+                      {result.event.linea && result.event.planta === 'P2' && (
                         <div className="info-row">
-                          <span className="info-label">🏭 Máquina:</span>
-                          <span className="info-value">{result.event.machine}</span>
+                          <span className="info-label">📍 Línea:</span>
+                          <span className="info-value">{result.event.linea}</span>
+                        </div>
+                      )}
+                      
+                      {(result.event.processType || result.event.machine) && result.event.planta === 'P3' && (
+                        <div className="info-row">
+                          <span className="info-label">⚙️ Proceso:</span>
+                          <span className="info-value">{result.event.processType || result.event.machine}</span>
                         </div>
                       )}
                       

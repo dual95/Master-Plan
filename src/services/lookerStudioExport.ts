@@ -1,9 +1,10 @@
 import type { CalendarEvent } from '../types';
-import { format } from 'date-fns';
+import { format, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export interface LookerStudioRow {
   FECHA: string;
+  SEMANA: number;
   PEDIDO: string;
   POS: number;
   PROYECTO: string;
@@ -25,7 +26,13 @@ export function generateLookerStudioData(events: CalendarEvent[]): LookerStudioR
   console.log(`📊 Generando datos Looker Studio para ${p2Events.length} eventos de P2`);
   
   const rows: LookerStudioRow[] = p2Events.map((event, index) => {
-    const fecha = format(new Date(event.start), 'dd-MMM-yy', { locale: es });
+    const eventDate = new Date(event.start);
+    const fecha = format(eventDate, 'dd-MMM-yy', { locale: es });
+    const semana = getWeek(eventDate, { 
+      locale: es, 
+      weekStartsOn: 1, // Lunes como inicio de semana
+      firstWeekContainsDate: 4 // ISO 8601: primera semana contiene el 4 de enero
+    });
     const unitPrice = event.unitPrice || 0;
     const plan = event.esperado || 0;
     const real = event.real || 0;
@@ -45,6 +52,7 @@ export function generateLookerStudioData(events: CalendarEvent[]): LookerStudioR
     
     const row: LookerStudioRow = {
       FECHA: fecha,
+      SEMANA: semana,
       PEDIDO: event.pedido || '',
       POS: event.pos || 0,
       PROYECTO: event.proyecto || '',
@@ -129,12 +137,13 @@ export async function exportToLookerStudio(
     await clearSheet(spreadsheetId, sheetName, accessToken);
     
     // 3. Preparar datos para escribir (headers + datos)
-    const headers = ['FECHA', 'PEDIDO', 'POS', 'PROYECTO', 'PLAN', 'REAL', '$/UND', 'PLAN $', 'REAL $', 'LINEA'];
+    const headers = ['FECHA', 'SEMANA', 'PEDIDO', 'POS', 'PROYECTO', 'PLAN', 'REAL', '$/UND', 'PLAN $', 'REAL $', 'LINEA'];
     const values = [
       headers,
       ...data.map((row, index) => {
         const rowData = [
           row.FECHA,
+          row.SEMANA,
           row.PEDIDO,
           row.POS,
           row.PROYECTO,
