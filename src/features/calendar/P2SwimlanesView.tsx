@@ -19,7 +19,7 @@ interface P2SwimlanesViewProps {
 }
 
 export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessToken }: P2SwimlanesViewProps) {
-  const { updateEvent } = useAppActions();
+  const { updateEvent, addEvent } = useAppActions();
   const [draggedTask, setDraggedTask] = useState<CalendarEvent | null>(null);
   const [dateFilter, setDateFilter] = useState<'week' | 'month'>('week');
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { locale: es, weekStartsOn: 1 }));
@@ -103,15 +103,17 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
   const handleDragStart = useCallback((e: React.DragEvent, event: CalendarEvent) => {
     e.stopPropagation();
     // Importante: establecer efectos permitidos para el drag
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = e.shiftKey ? 'copy' : 'move';
     e.dataTransfer.setData('text/plain', event.id);
+    e.dataTransfer.setData('shiftKey', e.shiftKey.toString());
     setDraggedTask(event);
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    e.dataTransfer.dropEffect = 'move';
+    // Mostrar cursor de copia si Shift está presionado
+    e.dataTransfer.dropEffect = e.shiftKey ? 'copy' : 'move';
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent, targetLine: P2Line, targetDate: Date) => {
@@ -137,18 +139,37 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     const duration = oldEnd.getTime() - oldDate.getTime();
     const newEnd = new Date(newStart.getTime() + duration);
 
-    // Actualizar la línea y fecha de la tarea
-    const updatedEvent: CalendarEvent = {
-      ...draggedTask,
-      linea: targetLine,
-      machine: targetLine,
-      start: newStart.toISOString(),
-      end: newEnd.toISOString()
-    };
+    // Detectar si Shift estaba presionado (modo duplicación)
+    const isDuplicate = e.shiftKey;
 
-    updateEvent(updatedEvent);
+    if (isDuplicate) {
+      // Crear una copia de la tarea con nuevo ID
+      const duplicatedEvent: CalendarEvent = {
+        ...draggedTask,
+        id: `${draggedTask.id}-copy-${Date.now()}`,
+        linea: targetLine,
+        machine: targetLine,
+        start: newStart.toISOString(),
+        end: newEnd.toISOString()
+      };
+      
+      console.log('📋 Duplicando tarea:', draggedTask.title, 'a', targetLine);
+      addEvent(duplicatedEvent);
+    } else {
+      // Actualizar la línea y fecha de la tarea
+      const updatedEvent: CalendarEvent = {
+        ...draggedTask,
+        linea: targetLine,
+        machine: targetLine,
+        start: newStart.toISOString(),
+        end: newEnd.toISOString()
+      };
+
+      updateEvent(updatedEvent);
+    }
+    
     setDraggedTask(null);
-  }, [draggedTask, updateEvent]);
+  }, [draggedTask, updateEvent, addEvent]);
 
   const handleDragEnd = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -434,6 +455,7 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
         <h4>💡 Cómo usar:</h4>
         <ul>
           <li>🖱️ Arrastra las tareas entre celdas para cambiar de línea y/o fecha</li>
+          <li>📋 <strong>Shift + Arrastra</strong> para duplicar una tarea (deja el original y crea una copia)</li>
           <li>✏️ Haz click en una tarea para editarla</li>
           <li>📅 Usa los botones de navegación y filtros de fecha arriba</li>
           <li>🎨 Los colores indican el estado: 🔴 Rojo (Cancelado), 🟢 Verde (Completado), 🟡 Amarillo (En Proceso), ⚪ Gris (Pendiente)</li>
