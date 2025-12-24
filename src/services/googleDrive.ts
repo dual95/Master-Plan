@@ -8,7 +8,7 @@ const DISCOVERY_DOCS = [
 ];
 
 const SCOPES = [
-  'https://www.googleapis.com/auth/drive.file', // Acceso a archivos creados o abiertos por la app
+  'https://www.googleapis.com/auth/drive.readonly', // Acceso de lectura a todos los archivos del Drive
   'https://www.googleapis.com/auth/spreadsheets' // Acceso completo a Google Sheets (lectura y escritura)
 ];
 
@@ -239,6 +239,8 @@ class GoogleDriveService {
     }
 
     try {
+      console.log('🔍 Buscando archivos en Google Drive...');
+      
       // Incluir tanto Google Sheets como archivos Excel
       const query = [
         "mimeType='application/vnd.google-apps.spreadsheet'", // Google Sheets
@@ -246,6 +248,8 @@ class GoogleDriveService {
         "mimeType='application/vnd.ms-excel'", // Excel .xls
         "mimeType='text/csv'" // CSV files
       ].join(' or ');
+
+      console.log('📋 Query:', `(${query}) and trashed=false`);
 
       const response = await this.gapi.client.drive.files.list({
         q: `(${query}) and trashed=false`,
@@ -255,6 +259,20 @@ class GoogleDriveService {
       });
 
       const files = response.result.files || [];
+      
+      console.log(`✅ Encontrados ${files.length} archivo(s)`);
+      
+      if (files.length > 0) {
+        console.log('📄 Primeros archivos:', files.slice(0, 3).map((f: any) => ({
+          nombre: f.name,
+          tipo: f.mimeType
+        })));
+      } else {
+        console.warn('⚠️ No se encontraron archivos. Verifica:');
+        console.warn('  1. Que tengas archivos de tipo Sheets/Excel en tu Drive');
+        console.warn('  2. Que los permisos de OAuth incluyan drive.readonly');
+        console.warn('  3. Que hayas concedido permisos a la aplicación');
+      }
       
       // Agregar información adicional sobre el tipo de archivo
       return files.map((file: any) => ({

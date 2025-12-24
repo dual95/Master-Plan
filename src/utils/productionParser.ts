@@ -456,7 +456,7 @@ function generateAutomaticTasksForProduct(
       proyecto: item.proyecto,
       componente: item.componente,
       unitPrice: item.unitPrice || 0,
-      updateStatus: '' // Las tareas automáticas no tienen estado inicial
+      updateStatus: 'PENDING' // Estado por defecto
     };
 
     tasks.push(task);
@@ -522,7 +522,7 @@ function generateAutomaticTasksForProduct(
       componente: item.componente,
       linea: assignedLine, // Agregar línea asignada
       unitPrice: item.unitPrice || 0, // Agregar precio unitario
-      updateStatus: '' // Las tareas automáticas no tienen estado inicial
+      updateStatus: 'PENDING' // Estado por defecto
     };
 
     tasks.push(ensambleTask);
@@ -673,7 +673,7 @@ function generateTasksForProduct(
         proyecto: item.proyecto,
         componente: item.componente,
         unitPrice: item.unitPrice || 0,
-        updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | 'CANCELED' | 'CANCELLED' | ''
+        updateStatus: (row.UPDATE || 'PENDING') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | 'CANCELED' | 'CANCELLED' | ''
       };
 
       tasks.push(task);
@@ -730,7 +730,7 @@ function generateTasksForProduct(
       componente: item.componente,
       unitPrice: item.unitPrice || 0,
       linea: assignedLine, // Agregar línea asignada
-      updateStatus: (row.UPDATE || '') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | 'CANCELED' | 'CANCELLED' | ''
+      updateStatus: (row.UPDATE || 'PENDING') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | 'CANCELED' | 'CANCELLED' | ''
     };
 
     tasks.push(ensambleTask);
