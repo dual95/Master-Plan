@@ -3,6 +3,7 @@ import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay }
 import { es } from 'date-fns/locale';
 import type { CalendarEvent } from '../../types';
 import { useAppActions } from '../../hooks/useApp';
+import { QuickTaskPicker } from '../../components/QuickTaskPicker';
 import './P3SwimlanesView.css';
 
 // Procesos de Planta 3
@@ -19,6 +20,8 @@ export function P3SwimlanesView({ events, onEventClick }: P3SwimlanesViewProps) 
   const [draggedTask, setDraggedTask] = useState<CalendarEvent | null>(null);
   const [dateFilter, setDateFilter] = useState<'week' | 'month'>('week');
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { locale: es, weekStartsOn: 1 }));
+  const [showQuickPicker, setShowQuickPicker] = useState(false);
+  const [quickPickerTarget, setQuickPickerTarget] = useState<{ process: P3Process; date: Date } | null>(null);
 
   // Calcular rango de fechas a mostrar
   const dateRange = useMemo(() => {
@@ -193,6 +196,37 @@ export function P3SwimlanesView({ events, onEventClick }: P3SwimlanesViewProps) 
     setDraggedTask(null);
   }, []);
 
+  // Handler para abrir el buscador al hacer click en una celda vacía
+  const handleCellClick = useCallback((e: React.MouseEvent, process: P3Process, date: Date) => {
+    // Solo abrir si el click fue directamente en la celda (no en una tarea)
+    if (e.target === e.currentTarget) {
+      setQuickPickerTarget({ process, date });
+      setShowQuickPicker(true);
+    }
+  }, []);
+
+  // Handler para cuando se selecciona un task del buscador
+  const handleQuickPickerSelect = useCallback((task: CalendarEvent) => {
+    if (!quickPickerTarget) return;
+
+    const { process, date } = quickPickerTarget;
+    
+    console.log(`📌 Moviendo task ${task.id} a ${process} en ${format(date, 'yyyy-MM-dd')}`);
+
+    // Actualizar el task con el nuevo proceso y fecha
+    const updatedTask: CalendarEvent = {
+      ...task,
+      processType: process,
+      category: process,
+      start: date.toISOString(),
+      end: date.toISOString(),
+    };
+
+    updateEvent(updatedTask);
+    setShowQuickPicker(false);
+    setQuickPickerTarget(null);
+  }, [quickPickerTarget, updateEvent]);
+
   // Click handler para editar tarea
   const handleTaskClick = useCallback((e: React.MouseEvent, task: CalendarEvent) => {
     e.stopPropagation();
@@ -336,6 +370,9 @@ export function P3SwimlanesView({ events, onEventClick }: P3SwimlanesViewProps) 
                   className={`day-cell ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, process, date)}
+                  onClick={(e) => handleCellClick(e, process, date)}
+                  style={{ cursor: 'pointer' }}
+                  title="Click para buscar y mover un task aquí"
                 >
                   {tasksForDay.map(task => (
                     <div
@@ -368,11 +405,23 @@ export function P3SwimlanesView({ events, onEventClick }: P3SwimlanesViewProps) 
         <ul>
           <li>🖱️ Arrastra las tareas entre celdas para cambiar de proceso y/o fecha</li>
           <li>📋 <strong>Shift + Arrastra</strong> para duplicar una tarea (deja el original y crea una copia)</li>
+          <li>🔍 <strong>Click en una celda vacía</strong> para buscar y mover un task a esa ubicación</li>
           <li>✏️ Haz click en una tarea para editarla</li>
           <li>📅 Usa los botones de navegación y filtros de fecha arriba</li>
           <li>🎨 Los colores indican el estado: 🔴 Rojo (Cancelado), 🟢 Verde (Completado), 🟡 Amarillo (En Proceso), ⚪ Gris (Pendiente)</li>
         </ul>
       </div>
+
+      {/* Buscador rápido */}
+      <QuickTaskPicker
+        isOpen={showQuickPicker}
+        onClose={() => {
+          setShowQuickPicker(false);
+          setQuickPickerTarget(null);
+        }}
+        onSelectTask={handleQuickPickerSelect}
+        targetLine={quickPickerTarget?.process}
+      />
     </div>
   );
 }

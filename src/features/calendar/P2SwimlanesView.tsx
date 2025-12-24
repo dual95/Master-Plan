@@ -5,6 +5,7 @@ import type { CalendarEvent } from '../../types';
 import { useAppActions } from '../../hooks/useApp';
 import { exportToLookerStudio } from '../../services/lookerStudioExport';
 import { driveService } from '../../services/googleDrive';
+import { QuickTaskPicker } from '../../components/QuickTaskPicker';
 import './P2SwimlanesView.css';
 
 // Líneas de ensamblaje de Planta 2
@@ -25,6 +26,8 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { locale: es, weekStartsOn: 1 }));
   const [isExporting, setIsExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showQuickPicker, setShowQuickPicker] = useState(false);
+  const [quickPickerTarget, setQuickPickerTarget] = useState<{ line: P2Line; date: Date } | null>(null);
 
   // Calcular rango de fechas a mostrar
   const dateRange = useMemo(() => {
@@ -176,6 +179,37 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     e.stopPropagation();
     setDraggedTask(null);
   }, []);
+
+  // Handler para abrir el buscador al hacer click en una celda vacía
+  const handleCellClick = useCallback((e: React.MouseEvent, line: P2Line, date: Date) => {
+    // Solo abrir si el click fue directamente en la celda (no en una tarea)
+    if (e.target === e.currentTarget) {
+      setQuickPickerTarget({ line, date });
+      setShowQuickPicker(true);
+    }
+  }, []);
+
+  // Handler para cuando se selecciona un task del buscador
+  const handleQuickPickerSelect = useCallback((task: CalendarEvent) => {
+    if (!quickPickerTarget) return;
+
+    const { line, date } = quickPickerTarget;
+    
+    console.log(`📌 Moviendo task ${task.id} a ${line} en ${format(date, 'yyyy-MM-dd')}`);
+
+    // Actualizar el task con la nueva línea y fecha
+    const updatedTask: CalendarEvent = {
+      ...task,
+      linea: line,
+      machine: line,
+      start: date.toISOString(),
+      end: date.toISOString(),
+    };
+
+    updateEvent(updatedTask);
+    setShowQuickPicker(false);
+    setQuickPickerTarget(null);
+  }, [quickPickerTarget, updateEvent]);
 
   // Click handler para editar tarea
   const handleTaskClick = useCallback((e: React.MouseEvent, task: CalendarEvent) => {
@@ -424,6 +458,9 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
                   className={`day-cell ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, line, date)}
+                  onClick={(e) => handleCellClick(e, line, date)}
+                  style={{ cursor: 'pointer' }}
+                  title="Click para buscar y mover un task aquí"
                 >
                   {tasksForDay.map(task => (
                     <div
@@ -456,11 +493,23 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
         <ul>
           <li>🖱️ Arrastra las tareas entre celdas para cambiar de línea y/o fecha</li>
           <li>📋 <strong>Shift + Arrastra</strong> para duplicar una tarea (deja el original y crea una copia)</li>
+          <li>🔍 <strong>Click en una celda vacía</strong> para buscar y mover un task a esa ubicación</li>
           <li>✏️ Haz click en una tarea para editarla</li>
           <li>📅 Usa los botones de navegación y filtros de fecha arriba</li>
           <li>🎨 Los colores indican el estado: 🔴 Rojo (Cancelado), 🟢 Verde (Completado), 🟡 Amarillo (En Proceso), ⚪ Gris (Pendiente)</li>
         </ul>
       </div>
+
+      {/* Buscador rápido */}
+      <QuickTaskPicker
+        isOpen={showQuickPicker}
+        onClose={() => {
+          setShowQuickPicker(false);
+          setQuickPickerTarget(null);
+        }}
+        onSelectTask={handleQuickPickerSelect}
+        targetLine={quickPickerTarget?.line}
+      />
     </div>
   );
 }
