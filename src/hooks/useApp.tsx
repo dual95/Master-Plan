@@ -115,28 +115,48 @@ export function AppProvider({ children }: AppProviderProps) {
 
   // Cargar datos al montar el componente
   useEffect(() => {
-    const persistedState = persistenceService.loadEvents();
-    if (persistedState && persistedState.events.length > 0) {
-      console.log('🔄 Restaurando eventos guardados...');
-      
-      // Deduplicar eventos antes de cargar
-      const uniqueEvents = deduplicateEvents(persistedState.events);
-      dispatch({ type: 'SET_EVENTS', payload: uniqueEvents });
-      
-      // Mostrar notificación al usuario
-      const info = persistenceService.getStorageInfo();
-      if (info) {
-        console.log(`📊 Eventos restaurados: ${info.eventCount}`);
-        console.log(`📅 Última actualización: ${new Date(info.lastUpdated || '').toLocaleString()}`);
+    async function loadPersistedData() {
+      try {
+        dispatch({ type: 'SET_LOADING', payload: true });
+        const persistedState = await persistenceService.loadEvents();
+        
+        if (persistedState && persistedState.events.length > 0) {
+          console.log('🔄 Restaurando eventos guardados...');
+          
+          // Deduplicar eventos antes de cargar
+          const uniqueEvents = deduplicateEvents(persistedState.events);
+          dispatch({ type: 'SET_EVENTS', payload: uniqueEvents });
+          
+          console.log(`📊 Eventos restaurados: ${uniqueEvents.length}`);
+          console.log(`📅 Última actualización: ${new Date(persistedState.lastUpdated || '').toLocaleString()}`);
+        } else {
+          console.log('ℹ️ No hay eventos guardados');
+        }
+      } catch (error) {
+        console.error('Error cargando datos:', error);
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false });
       }
     }
+    
+    loadPersistedData();
   }, []);
 
   // Guardar datos automáticamente cuando cambian los eventos
   useEffect(() => {
-    if (state.events.length > 0) {
-      persistenceService.saveEvents(state.events, state.selectedFile?.name);
+    async function saveData() {
+      if (state.events.length > 0) {
+        try {
+          await persistenceService.saveEvents(state.events, state.selectedFile?.name);
+        } catch (error) {
+          console.error('Error guardando eventos:', error);
+        }
+      }
     }
+    
+    // Debounce para evitar guardar demasiado frecuentemente
+    const timeoutId = setTimeout(saveData, 500);
+    return () => clearTimeout(timeoutId);
   }, [state.events, state.selectedFile]);
 
   return (
