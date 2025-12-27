@@ -73,9 +73,11 @@ function App() {
   }
 
   const renderContent = () => {
+    const isAdmin = currentUser?.role === 'admin';
+    
     switch (activeTab) {
       case 'calendar':
-        return <MasterCalendar />;
+        return <MasterCalendar currentUser={currentUser} />;
       case 'drive':
         return (
           <div className="drive-content">
@@ -85,9 +87,14 @@ function App() {
           </div>
         );
       case 'export':
-        return <LookerExport />;
+        return isAdmin ? <LookerExport /> : (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <h2>🔒 Acceso Restringido</h2>
+            <p>Solo los administradores pueden exportar a Looker Studio.</p>
+          </div>
+        );
       default:
-        return <MasterCalendar />;
+        return <MasterCalendar currentUser={currentUser} />;
     }
   };
 

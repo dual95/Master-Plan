@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { CalendarEvent } from '../../types';
+import type { User } from '../../services/authService';
 import { useAppActions } from '../../hooks/useApp';
 import { QuickTaskPicker } from '../../components/QuickTaskPicker';
 import './P3SwimlanesView.css';
@@ -13,9 +14,11 @@ type P3Process = typeof P3_PROCESSES[number];
 interface P3SwimlanesViewProps {
   events: CalendarEvent[];
   onEventClick?: (event: CalendarEvent) => void;
+  currentUser: User | null;
 }
 
-export function P3SwimlanesView({ events, onEventClick }: P3SwimlanesViewProps) {
+export function P3SwimlanesView({ events, onEventClick, currentUser }: P3SwimlanesViewProps) {
+  const isAdmin = currentUser?.role === 'admin';
   const { updateEvent, addEvent } = useAppActions();
   const [draggedTask, setDraggedTask] = useState<CalendarEvent | null>(null);
   const [dateFilter, setDateFilter] = useState<'week' | 'month'>('week');
@@ -122,12 +125,18 @@ export function P3SwimlanesView({ events, onEventClick }: P3SwimlanesViewProps) 
 
   // Drag & Drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, event: CalendarEvent) => {
+    // Solo admins pueden mover/copiar tareas
+    if (!isAdmin) {
+      e.preventDefault();
+      return;
+    }
+    
     e.stopPropagation();
     e.dataTransfer.effectAllowed = e.shiftKey ? 'copy' : 'move';
     e.dataTransfer.setData('text/plain', event.id);
     e.dataTransfer.setData('shiftKey', e.shiftKey.toString());
     setDraggedTask(event);
-  }, []);
+  }, [isAdmin]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -198,12 +207,15 @@ export function P3SwimlanesView({ events, onEventClick }: P3SwimlanesViewProps) 
 
   // Handler para abrir el buscador al hacer click en una celda vacía
   const handleCellClick = useCallback((e: React.MouseEvent, process: P3Process, date: Date) => {
+    // Solo admins pueden usar QuickTaskPicker
+    if (!isAdmin) return;
+    
     // Solo abrir si el click fue directamente en la celda (no en una tarea)
     if (e.target === e.currentTarget) {
       setQuickPickerTarget({ process, date });
       setShowQuickPicker(true);
     }
-  }, []);
+  }, [isAdmin]);
 
   // Handler para cuando se selecciona un task del buscador
   const handleQuickPickerSelect = useCallback((task: CalendarEvent) => {
@@ -371,22 +383,23 @@ export function P3SwimlanesView({ events, onEventClick }: P3SwimlanesViewProps) 
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, process, date)}
                   onClick={(e) => handleCellClick(e, process, date)}
-                  style={{ cursor: 'pointer' }}
-                  title="Click para buscar y mover un task aquí"
+                  style={{ cursor: isAdmin ? 'pointer' : 'default' }}
+                  title={isAdmin ? "Click para buscar y mover un task aquí" : ""}
                 >
                   {tasksForDay.map(task => (
                     <div
                       key={task.id}
                       className={`timeline-task ${draggedTask?.id === task.id ? 'dragging' : ''}`}
-                      draggable={true}
+                      draggable={isAdmin}
                       onDragStart={(e) => handleDragStart(e, task)}
                       onDragEnd={handleDragEnd}
                       onClick={(e) => handleTaskClick(e, task)}
                       onMouseDown={(e) => e.stopPropagation()}
                       style={{
                         backgroundColor: getTaskColor(task),
+                        cursor: isAdmin ? 'grab' : 'pointer',
                       }}
-                      title={`${task.title}\nPO: ${task.pedido || '-'}\nPOS: ${task.pos || '-'}\nPLIEGOS: ${task.pliegos || '-'}\nClick para editar`}
+                      title={isAdmin ? `${task.title}\nPO: ${task.pedido || '-'}\nPOS: ${task.pos || '-'}\nPLIEGOS: ${task.pliegos || '-'}\nClick para editar` : `${task.title}\n(Solo lectura - contacta al administrador para cambios)`}
                     >
                       <span className="task-title-mini">{task.title}</span>
                       {task.pos && <span className="task-pos-mini">#{task.pos}</span>}

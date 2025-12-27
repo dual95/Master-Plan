@@ -5,6 +5,7 @@ import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import { format, parse, startOfWeek, getDay, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { CalendarEvent } from '../../types';
+import type { User } from '../../services/authService';
 import { useApp, useAppActions } from '../../hooks/useApp';
 import { EventModal } from '../../components/EventModal';
 import { EventInfoModal } from '../../components/EventInfoModal';
@@ -35,9 +36,10 @@ const DnDCalendar = withDragAndDrop(Calendar);
 
 interface MasterCalendarProps {
   height?: number;
+  currentUser: User | null;
 }
 
-export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
+export function MasterCalendar({ height = 600, currentUser }: MasterCalendarProps) {
   const { state } = useApp();
   const { setError, updateEvent, addEvent, deleteEvent, clearPersistedData } = useAppActions();
   
@@ -464,6 +466,7 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
         <P3SwimlanesView 
           events={state.events}
           onEventClick={handleSelectEvent}
+          currentUser={currentUser}
         />
       ) : activePlant === 'P2' ? (
         <P2SwimlanesView 
@@ -471,6 +474,7 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
           onEventClick={handleSelectEvent}
           spreadsheetId={state.selectedFile?.id}
           accessToken={driveService.getAccessToken() || undefined}
+          currentUser={currentUser}
         />
       ) : (
         <div className="calendar-with-weeks">
@@ -561,6 +565,7 @@ export function MasterCalendar({ height = 600 }: MasterCalendarProps) {
         onClose={handleCloseModal}
         onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
+        currentUser={currentUser}
       />
       {/* Modal solo info por doble clic */}
       <EventInfoModal

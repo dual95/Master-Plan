@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { CalendarEvent } from '../types';
+import type { User } from '../services/authService';
 import './EventModal.css';
 
 interface EventModalProps {
@@ -8,9 +9,11 @@ interface EventModalProps {
   onClose: () => void;
   onSave: (event: CalendarEvent) => void;
   onDelete: (eventId: string) => void;
+  currentUser: User | null;
 }
 
-export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventModalProps) {
+export function EventModal({ event, isOpen, onClose, onSave, onDelete, currentUser }: EventModalProps) {
+  const isAdmin = currentUser?.role === 'admin';
   const [formData, setFormData] = useState<CalendarEvent>({
     id: '',
     title: '',
@@ -123,6 +126,8 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
               onChange={(e) => handleChange('title', e.target.value)}
               placeholder="Nombre del evento"
               required
+              readOnly={!isAdmin}
+              style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
             />
           </div>
 
@@ -134,6 +139,8 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
               onChange={(e) => handleChange('description', e.target.value)}
               placeholder="Descripción del evento (opcional)"
               rows={3}
+              readOnly={!isAdmin}
+              style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
             />
           </div>
 
@@ -146,6 +153,8 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
                 value={typeof formData.start === 'string' ? formData.start.slice(0, 16) : formData.start.toISOString().slice(0, 16)}
                 onChange={(e) => handleChange('start', e.target.value)}
                 required
+                readOnly={!isAdmin}
+                style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
               />
             </div>
 
@@ -157,6 +166,8 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
                 value={typeof formData.end === 'string' ? formData.end.slice(0, 16) : formData.end.toISOString().slice(0, 16)}
                 onChange={(e) => handleChange('end', e.target.value)}
                 required
+                readOnly={!isAdmin}
+                style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
               />
             </div>
           </div>
@@ -168,6 +179,8 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
                 id="priority"
                 value={formData.priority}
                 onChange={(e) => handleChange('priority', e.target.value)}
+                disabled={!isAdmin}
+                style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
               >
                 <option value="low">🟢 Baja</option>
                 <option value="medium">🟡 Media</option>
@@ -181,6 +194,8 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
                 id="status"
                 value={formData.status}
                 onChange={(e) => handleChange('status', e.target.value)}
+                disabled={!isAdmin}
+                style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
               >
                 <option value="pending">⏳ Pendiente</option>
                 <option value="in-progress">🔄 En Progreso</option>
@@ -199,6 +214,8 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
                 value={formData.category}
                 onChange={(e) => handleChange('category', e.target.value)}
                 placeholder="ej: Trabajo, Personal, Reunión"
+                readOnly={!isAdmin}
+                style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
               />
             </div>
 
@@ -210,6 +227,8 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
                 value={formData.assignee}
                 onChange={(e) => handleChange('assignee', e.target.value)}
                 placeholder="Nombre de la persona responsable"
+                readOnly={!isAdmin}
+                style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
               />
             </div>
           </div>
@@ -225,11 +244,13 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
                 value={formData.esperado || ''}
                 onChange={(e) => handleChange('esperado', e.target.value)}
                 placeholder="Valor esperado"
+                readOnly={!isAdmin}
+                style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="real">📈 Real</label>
+              <label htmlFor="real">📈 Real {!isAdmin && '(Editable)'}</label>
               <input
                 id="real"
                 type="number"
@@ -237,6 +258,7 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
                 value={formData.real || ''}
                 onChange={(e) => handleChange('real', e.target.value)}
                 placeholder="Valor real"
+                style={!isAdmin ? { borderColor: '#4caf50', borderWidth: '2px' } : {}}
               />
             </div>
           </div>
@@ -251,15 +273,19 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete }: EventMo
               value={formData.unitPrice || ''}
               onChange={(e) => handleChange('unitPrice', e.target.value)}
               placeholder="Precio por unidad (desde Excel)"
+              readOnly={!isAdmin}
+              style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
             />
             <small style={{ color: '#666', fontSize: '0.85rem' }}>
-              Este valor se lee automáticamente del Excel. Puedes editarlo manualmente si es necesario.
+              {isAdmin 
+                ? 'Este valor se lee automáticamente del Excel. Puedes editarlo manualmente si es necesario.'
+                : 'Solo lectura - contacta al administrador para cambios'}
             </small>
           </div>
 
           <div className="modal-actions">
             <div className="left-actions">
-              {event && (
+              {event && isAdmin && (
                 <button
                   type="button"
                   onClick={handleDelete}
