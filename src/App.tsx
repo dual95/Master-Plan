@@ -27,9 +27,9 @@ function App() {
     setAuthLoading(true);
     try {
       if (authService.isAuthenticated()) {
-        const result = await authService.getCurrentUser();
-        if (result.success && result.user) {
-          setCurrentUser(result.user);
+        const user = await authService.getCurrentUser();
+        if (user) {
+          setCurrentUser(user);
           setIsAuthenticated(true);
         } else {
           setIsAuthenticated(false);
