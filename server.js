@@ -92,8 +92,8 @@ app.post('/api/auth/register', async (req, res) => {
     const userId = `user_${Date.now()}`;
 
     await pool.query(
-// POST /api/events - Guardar todos los eventos (sobrescribe)
-app.post('/api/events', authenticateToken, async (req, res) => {sword, name]
+      'INSERT INTO users (id, email, password, name) VALUES ($1, $2, $3, $4)',
+      [userId, email.toLowerCase(), hashedPassword, name]
     );
 
     res.json({ success: true, message: 'Usuario registrado exitosamente' });
