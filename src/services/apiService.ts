@@ -1,4 +1,5 @@
 import type { CalendarEvent } from '../types';
+import { authService } from './authService';
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000';
 
@@ -8,22 +9,37 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = authService.getToken();
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...options.headers,
+  };
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
+
 export const apiService = {
   /**
    * Obtener todos los eventos del servidor
    */
   async getEvents(): Promise<CalendarEvent[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events`);
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/events`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log(`📥 Recibidos ${data.events.length} eventos del servidor`);
+      console.log(`📥 Recibidos ${data.events?.length || 0} eventos del servidor`);
       
-      return data.events;
+      return data.events || [];
     } catch (error) {
       console.error('❌ Error obteniendo eventos:', error);
       throw error;
@@ -37,11 +53,8 @@ export const apiService = {
     try {
       console.log(`📤 Enviando ${events.length} eventos al servidor...`);
       
-      const response = await fetch(`${API_BASE_URL}/api/events`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/events`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ events }),
       });
       
@@ -62,11 +75,8 @@ export const apiService = {
    */
   async updateEvent(event: CalendarEvent): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events/${event.id}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/events/${event.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(event),
       });
       
@@ -86,7 +96,7 @@ export const apiService = {
    */
   async deleteEvent(eventId: string): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/events/${eventId}`, {
         method: 'DELETE',
       });
       
