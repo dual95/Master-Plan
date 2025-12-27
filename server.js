@@ -92,8 +92,8 @@ app.post('/api/auth/register', async (req, res) => {
     const userId = `user_${Date.now()}`;
 
     await pool.query(
-      'INSERT INTO users (id, email, password, name) VALUES ($1, $2, $3, $4)',
-      [userId, email.toLowerCase(), hashedPassword, name]
+      'INSERT INTO users (id, email, password, name, role) VALUES ($1, $2, $3, $4, $5)',
+      [userId, email.toLowerCase(), hashedPassword, name, 'user']
     );
 
     res.json({ success: true, message: 'Usuario registrado exitosamente' });
