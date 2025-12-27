@@ -72,9 +72,9 @@ function App() {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
+  const isAdmin = currentUser?.role === 'admin';
+
   const renderContent = () => {
-    const isAdmin = currentUser?.role === 'admin';
-    
     switch (activeTab) {
       case 'calendar':
         return <MasterCalendar currentUser={currentUser} />;
