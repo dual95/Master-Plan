@@ -122,18 +122,22 @@ function App() {
             >
               📅 Calendario
             </button>
-            <button
-              className={`tab ${activeTab === 'drive' ? 'active' : ''}`}
-              onClick={() => setActiveTab('drive')}
-            >
-              🔗 Conexión
-            </button>
-            <button
-              className={`tab ${activeTab === 'export' ? 'active' : ''}`}
-              onClick={() => setActiveTab('export')}
-            >
-              📊 Exportar
-            </button>
+            {isAdmin && (
+              <button
+                className={`tab ${activeTab === 'drive' ? 'active' : ''}`}
+                onClick={() => setActiveTab('drive')}
+              >
+                🔗 Conexión
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                className={`tab ${activeTab === 'export' ? 'active' : ''}`}
+                onClick={() => setActiveTab('export')}
+              >
+                📊 Exportar
+              </button>
+            )}
           </nav>
         </header>
         
