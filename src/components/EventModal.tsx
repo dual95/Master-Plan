@@ -194,14 +194,35 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete, currentUs
                 id="status"
                 value={formData.status}
                 onChange={(e) => handleChange('status', e.target.value)}
-                disabled={!isAdmin}
-                style={!isAdmin ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
+                style={{ borderColor: '#2196f3', borderWidth: '2px' }}
               >
                 <option value="pending">⏳ Pendiente</option>
                 <option value="in-progress">🔄 En Progreso</option>
                 <option value="completed">✅ Completado</option>
                 <option value="cancelled">❌ Cancelado</option>
               </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="updateStatus">Estado de Actualización</label>
+              <select
+                id="updateStatus"
+                value={formData.updateStatus || ''}
+                onChange={(e) => handleChange('updateStatus', e.target.value)}
+                style={{ borderColor: '#2196f3', borderWidth: '2px' }}
+              >
+                <option value="">Sin estado</option>
+                <option value="PENDING">⚪ PENDING</option>
+                <option value="IN PROCESS">🟡 IN PROCESS</option>
+                <option value="COMPLETED">🟢 COMPLETED</option>
+                <option value="CANCELED">🔴 CANCELED</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              {/* Espacio vacío para mantener la simetría */}
             </div>
           </div>
 

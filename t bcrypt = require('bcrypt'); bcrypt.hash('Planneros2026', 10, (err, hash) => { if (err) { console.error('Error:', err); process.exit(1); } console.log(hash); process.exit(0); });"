@@ -1,0 +1,6 @@
+         id          |          email           |     name      | role  |         created_at         
+---------------------+--------------------------+---------------+-------+----------------------------
+ user_1766857916467  | manupoetablack@gmail.com | Manuel        | user  | 2025-12-27 17:51:56.487295
+ admin_1735315200000 | admin@masterplan.com     | Administrador | admin | 2025-12-27 18:04:30.528712
+(2 rows)
+
