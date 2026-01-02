@@ -206,28 +206,6 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete, currentUs
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="updateStatus">Estado de Actualización</label>
-              <select
-                id="updateStatus"
-                value={formData.updateStatus || ''}
-                onChange={(e) => handleChange('updateStatus', e.target.value)}
-                style={{ borderColor: '#2196f3', borderWidth: '2px' }}
-              >
-                <option value="">Sin estado</option>
-                <option value="PENDING">⚪ PENDING</option>
-                <option value="IN PROCESS">🟡 IN PROCESS</option>
-                <option value="COMPLETED">🟢 COMPLETED</option>
-                <option value="CANCELED">🔴 CANCELED</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              {/* Espacio vacío para mantener la simetría */}
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
               <label htmlFor="category">Categoría</label>
               <input
                 id="category"
