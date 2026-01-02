@@ -161,14 +161,12 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
 
   // Debug: Log del objeto resultado para las primeras filas
   if (debugIndex <= 2) {
-    console.log(`🔧 Objeto resultado fila ${debugIndex + 1}:`, {
+    console.log(`🔧 Fila ${debugIndex + 1}:`, {
       PEDIDO: result.PEDIDO,
       PROYECTO: result.PROYECTO,
       COMPONENTE: result.COMPONENTE,
-      PRODUCT: result.PRODUCT,
       MATERIAL: result.MATERIAL,
       POS: result.POS,
-      '$/UND': result['$/UND'], // Agregar logging del precio
       processes: {
         IMPRESION: result.IMPRESION,
         BARNIZ: result.BARNIZ,
@@ -176,8 +174,6 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
         TROQUELADO: result.TROQUELADO
       }
     });
-    // Debug adicional: mostrar todas las columnas disponibles
-    console.log('📋 Columnas disponibles en la fila:', Object.keys(row).filter(k => k.includes('$') || k.toLowerCase().includes('precio') || k.toLowerCase().includes('price') || k.toLowerCase().includes('product')));
   }
 
   return result;
@@ -352,18 +348,6 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
       product: String(typedRow.PRODUCT || '') // Agregar campo product
     };
     
-    // Debug: verificar unitPrice en ProductionItem
-    if (index <= 2) {
-      console.log(`💰 ProductionItem creado para ${productionItem.pedido}:`, {
-        'typedRow["$/UND"]': typedRow['$/UND'],
-        'typedRow.PRODUCT': typedRow.PRODUCT,
-        'String(typedRow["$/UND"])': String(typedRow['$/UND'] || 0),
-        'parseFloat': parseFloat(String(typedRow['$/UND'] || 0)),
-        'productionItem.unitPrice': productionItem.unitPrice,
-        'productionItem.product': productionItem.product
-      });
-    }
-
     items.push(productionItem);
 
     // 🚨 DETECTAR SI LOS PROCESOS ESTÁN VACÍOS Y USAR FALLBACK
@@ -830,6 +814,7 @@ export function convertTasksToCalendarEvents(tasks: ProductionTask[]): CalendarE
     planta: task.planta,
     linea: task.linea,
     unitPrice: task.unitPrice,
+    product: task.product,
     updateStatus: task.updateStatus
   }));
 }
