@@ -129,7 +129,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
   const proyecto = String(getColumnValue(['PROYECTO', 'PROJECT', 'DESCRIPCION'], 'PROYECTO') || '').trim();
   const componente = String(getColumnValue(['COMPONENTE', 'COMPONENT', 'TIPO'], 'COMPONENTE') || '').trim();
   const pos = getColumnValue(['POS', 'POSICION', 'LINE'], 'POS');
-  const product = String(getColumnValue(['PRODUCT', 'PRODUCTO'], 'PRODUCT') || '').trim();
+  const product = String(getColumnValue(['PRODUCT', 'PRODUCTO', 'PRODUCTS'], 'PRODUCT') || '').trim();
 
   // Una fila es válida si tiene pedido O proyecto O posición válida
   if (!pedido && !proyecto && !pos) {
@@ -165,6 +165,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
       PEDIDO: result.PEDIDO,
       PROYECTO: result.PROYECTO,
       COMPONENTE: result.COMPONENTE,
+      PRODUCT: result.PRODUCT,
       MATERIAL: result.MATERIAL,
       POS: result.POS,
       '$/UND': result['$/UND'], // Agregar logging del precio
@@ -176,7 +177,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
       }
     });
     // Debug adicional: mostrar todas las columnas disponibles
-    console.log('📋 Columnas disponibles en la fila:', Object.keys(row).filter(k => k.includes('$') || k.toLowerCase().includes('precio') || k.toLowerCase().includes('price')));
+    console.log('📋 Columnas disponibles en la fila:', Object.keys(row).filter(k => k.includes('$') || k.toLowerCase().includes('precio') || k.toLowerCase().includes('price') || k.toLowerCase().includes('product')));
   }
 
   return result;
@@ -355,9 +356,11 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
     if (index <= 2) {
       console.log(`💰 ProductionItem creado para ${productionItem.pedido}:`, {
         'typedRow["$/UND"]': typedRow['$/UND'],
+        'typedRow.PRODUCT': typedRow.PRODUCT,
         'String(typedRow["$/UND"])': String(typedRow['$/UND'] || 0),
         'parseFloat': parseFloat(String(typedRow['$/UND'] || 0)),
-        'productionItem.unitPrice': productionItem.unitPrice
+        'productionItem.unitPrice': productionItem.unitPrice,
+        'productionItem.product': productionItem.product
       });
     }
 
