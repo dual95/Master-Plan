@@ -5,6 +5,7 @@ import { es } from 'date-fns/locale';
 export interface LookerStudioRow {
   FECHA: string;
   SEMANA: number;
+  PRODUCT: string;
   PEDIDO: string;
   POS: number;
   PROYECTO: string;
@@ -53,6 +54,7 @@ export function generateLookerStudioData(events: CalendarEvent[]): LookerStudioR
     const row: LookerStudioRow = {
       FECHA: fecha,
       SEMANA: semana,
+      PRODUCT: event.product || '',
       PEDIDO: event.pedido || '',
       POS: event.pos || 0,
       PROYECTO: event.proyecto || '',

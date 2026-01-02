@@ -128,6 +128,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
   const proyecto = String(getColumnValue(['PROYECTO', 'PROJECT', 'DESCRIPCION'], 'PROYECTO') || '').trim();
   const componente = String(getColumnValue(['COMPONENTE', 'COMPONENT', 'TIPO'], 'COMPONENTE') || '').trim();
   const pos = getColumnValue(['POS', 'POSICION', 'LINE'], 'POS');
+  const product = String(getColumnValue(['PRODUCT', 'PRODUCTO'], 'PRODUCT') || '').trim();
 
   // Una fila es válida si tiene pedido O proyecto O posición válida
   if (!pedido && !proyecto && !pos) {
@@ -344,7 +345,8 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
       estimacion: true,
       proyecto: String(typedRow.PROYECTO || ''),
       componente: String(typedRow.COMPONENTE || ''),
-      unitPrice: parseFloat(String(typedRow['$/UND'] || 0)) // Agregar precio unitario
+      unitPrice: parseFloat(String(typedRow['$/UND'] || 0)), // Agregar precio unitario
+      product: product // Agregar campo product
     };
     
     // Debug: verificar unitPrice en ProductionItem
@@ -456,6 +458,7 @@ function generateAutomaticTasksForProduct(
       proyecto: item.proyecto,
       componente: item.componente,
       unitPrice: item.unitPrice || 0,
+      product: item.product || '',
       updateStatus: 'PENDING' // Estado por defecto
     };
 
@@ -522,6 +525,7 @@ function generateAutomaticTasksForProduct(
       componente: item.componente,
       linea: assignedLine, // Agregar línea asignada
       unitPrice: item.unitPrice || 0, // Agregar precio unitario
+      product: item.product || '',
       updateStatus: 'PENDING' // Estado por defecto
     };
 
@@ -673,6 +677,7 @@ function generateTasksForProduct(
         proyecto: item.proyecto,
         componente: item.componente,
         unitPrice: item.unitPrice || 0,
+        product: item.product || '',
         updateStatus: (row.UPDATE || 'PENDING') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | 'CANCELED' | 'CANCELLED' | ''
       };
 
@@ -729,6 +734,7 @@ function generateTasksForProduct(
       proyecto: item.proyecto,
       componente: item.componente,
       unitPrice: item.unitPrice || 0,
+      product: item.product || '',
       linea: assignedLine, // Agregar línea asignada
       updateStatus: (row.UPDATE || 'PENDING') as 'COMPLETED' | 'IN PROCESS' | 'PENDING' | 'CANCELED' | 'CANCELLED' | ''
     };

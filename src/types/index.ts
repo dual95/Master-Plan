@@ -37,6 +37,7 @@ export interface CalendarEvent {
   linea?: string; // MOEX, YOBEL, MELISSA, etc.
   updateStatus?: 'COMPLETED' | 'IN PROCESS' | 'PENDING' | 'CANCELED' | 'CANCELLED' | ''; // Estado de la columna UPDATE
   unitPrice?: number; // Precio unitario ($/UND) - viene del Excel
+  product?: string; // Producto - viene del Excel
   
   // Campos manuales (no vienen del Excel)
   esperado?: number; // Valor esperado (manual)
@@ -117,6 +118,7 @@ export interface ProductionItem {
   proyecto: string;
   componente: string;
   unitPrice?: number; // Precio unitario ($/UND)
+  product?: string; // Producto
 }
 
 export interface ProductionProcess {
