@@ -139,13 +139,14 @@ export async function exportToLookerStudio(
     await clearSheet(spreadsheetId, sheetName, accessToken);
     
     // 3. Preparar datos para escribir (headers + datos)
-    const headers = ['FECHA', 'SEMANA', 'PEDIDO', 'POS', 'PROYECTO', 'PLAN', 'REAL', '$/UND', 'PLAN $', 'REAL $', 'LINEA'];
+    const headers = ['FECHA', 'SEMANA', 'PRODUCT', 'PEDIDO', 'POS', 'PROYECTO', 'PLAN', 'REAL', '$/UND', 'PLAN $', 'REAL $', 'LINEA'];
     const values = [
       headers,
       ...data.map((row, index) => {
         const rowData = [
           row.FECHA,
           row.SEMANA,
+          row.PRODUCT,
           row.PEDIDO,
           row.POS,
           row.PROYECTO,
