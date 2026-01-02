@@ -51,6 +51,7 @@ export interface ProductionSpreadsheetRow {
   POS: number | string;
   PROYECTO: string;
   COMPONENTE: string;
+  PRODUCT?: string; // Nueva columna PRODUCT
   MATERIAL: string;
   'F PRD': string;
   'CTD PEDIDO': number;
@@ -142,6 +143,7 @@ function convertToProductionRow(row: SpreadsheetRow, debugIndex: number = 0): Pr
     POS: pos !== '' ? parseNumber(pos) : 0,
     PROYECTO: proyecto,
     COMPONENTE: componente,
+    PRODUCT: product,
     MATERIAL: String(getColumnValue(['MATERIAL', 'MAT', 'TYPE'], 'MATERIAL') || ''),
     'F PRD': String(getColumnValue(['F PRD', 'FECHA', 'DATE', 'REQ DATE'], 'F PRD') || ''),
     'CTD PEDIDO': getColumnValue(['CTD PEDIDO', 'CANTIDAD', 'QTY', 'QUANTITY', 'QTY + OVER'], 'CTD PEDIDO') !== '' ? parseNumber(getColumnValue(['CTD PEDIDO', 'CANTIDAD', 'QTY', 'QUANTITY', 'QTY + OVER'], 'CTD PEDIDO')) : 0,
@@ -346,7 +348,7 @@ export function parseProductionSpreadsheet(spreadsheetRows: SpreadsheetRow[]): P
       proyecto: String(typedRow.PROYECTO || ''),
       componente: String(typedRow.COMPONENTE || ''),
       unitPrice: parseFloat(String(typedRow['$/UND'] || 0)), // Agregar precio unitario
-      product: product // Agregar campo product
+      product: String(typedRow.PRODUCT || '') // Agregar campo product
     };
     
     // Debug: verificar unitPrice en ProductionItem
