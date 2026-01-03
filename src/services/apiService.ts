@@ -112,6 +112,28 @@ export const apiService = {
   },
 
   /**
+   * Eliminar todos los eventos
+   */
+  async clearAllEvents(): Promise<void> {
+    try {
+      console.log('🗑️ Eliminando todos los eventos del servidor...');
+      
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/events`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      console.log('✅ Todos los eventos eliminados del servidor');
+    } catch (error) {
+      console.error('❌ Error eliminando todos los eventos:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Verificar salud de la API
    */
   async healthCheck(): Promise<boolean> {

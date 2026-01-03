@@ -393,9 +393,9 @@ export function MasterCalendar({ height = 600, currentUser }: MasterCalendarProp
             {persistenceService.hasPersistedData() && (
               <button 
                 className="clear-data-button"
-                onClick={() => {
+                onClick={async () => {
                   if (window.confirm('¿Estás seguro de borrar todos los datos guardados? Esta acción no se puede deshacer.')) {
-                    clearPersistedData();
+                    await clearPersistedData();
                   }
                 }}
                 title="Borrar datos guardados"

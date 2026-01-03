@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { AppState, AppAction, CalendarEvent } from '../types';
 import { persistenceService } from '../services/persistenceService';
+import { apiService } from '../services/apiService';
 
 // Estado inicial
 const initialState: AppState = {
@@ -211,9 +212,23 @@ export function useAppActions() {
       dispatch({ type: 'SET_ERROR', payload: error }),
     
     // Nueva función para limpiar datos guardados
-    clearPersistedData: () => {
-      persistenceService.clearEvents();
-      dispatch({ type: 'SET_EVENTS', payload: [] });
+    clearPersistedData: async () => {
+      try {
+        // Limpiar localStorage
+        persistenceService.clearEvents();
+        
+        // Limpiar base de datos
+        await apiService.clearAllEvents();
+        
+        // Limpiar estado de la aplicación
+        dispatch({ type: 'SET_EVENTS', payload: [] });
+        
+        console.log('✅ Datos eliminados de localStorage y base de datos');
+      } catch (error) {
+        console.error('❌ Error limpiando datos:', error);
+        // Aunque falle la API, igual limpiamos localStorage y estado local
+        dispatch({ type: 'SET_EVENTS', payload: [] });
+      }
     },
   };
 }

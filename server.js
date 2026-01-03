@@ -277,6 +277,21 @@ app.delete('/api/events/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// DELETE /api/events - Eliminar TODOS los eventos
+app.delete('/api/events', authenticateToken, async (req, res) => {
+  try {
+    console.log('🗑️ Eliminando TODOS los eventos...');
+    
+    const result = await pool.query('DELETE FROM events');
+    
+    console.log(`✅ ${result.rowCount} eventos eliminados`);
+    res.json({ success: true, message: `${result.rowCount} eventos eliminados` });
+  } catch (error) {
+    console.error('Error eliminando todos los eventos:', error);
+    res.status(500).json({ error: 'Error al eliminar eventos' });
+  }
+});
+
 // GET /api/health - Health check
 app.get('/api/health', async (req, res) => {
   try {
