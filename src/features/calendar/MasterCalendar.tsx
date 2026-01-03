@@ -466,6 +466,8 @@ export function MasterCalendar({ height = 600, currentUser }: MasterCalendarProp
         <P3SwimlanesView 
           events={state.events}
           onEventClick={handleSelectEvent}
+          spreadsheetId={state.selectedFile?.id}
+          accessToken={driveService.getAccessToken() || undefined}
           currentUser={currentUser}
         />
       ) : activePlant === 'P2' ? (

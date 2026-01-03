@@ -16,10 +16,12 @@ type P3Process = typeof P3_PROCESSES[number];
 interface P3SwimlanesViewProps {
   events: CalendarEvent[];
   onEventClick?: (event: CalendarEvent) => void;
+  spreadsheetId?: string;
+  accessToken?: string;
   currentUser: User | null;
 }
 
-export function P3SwimlanesView({ events, onEventClick, currentUser }: P3SwimlanesViewProps) {
+export function P3SwimlanesView({ events, onEventClick, spreadsheetId, accessToken, currentUser }: P3SwimlanesViewProps) {
   const isAdmin = currentUser?.role === 'admin';
   const { updateEvent, addEvent } = useAppActions();
   const [draggedTask, setDraggedTask] = useState<CalendarEvent | null>(null);
@@ -266,21 +268,23 @@ export function P3SwimlanesView({ events, onEventClick, currentUser }: P3Swimlan
 
   // Función para exportar a Looker Studio 2
   const handleExportToLookerStudio = useCallback(async () => {
-    if (!driveService.isSignedIn()) {
-      alert('❌ Debes conectarte a Google Drive primero');
-      return;
-    }
-
-    const spreadsheetId = localStorage.getItem('currentSpreadsheetId');
     if (!spreadsheetId) {
-      alert('❌ No hay un archivo de Google Sheets seleccionado');
+      alert('❌ No hay un archivo de Google Sheets conectado. Por favor, conecta primero un archivo.');
       return;
     }
 
     setIsExporting(true);
     try {
-      const accessToken = driveService.getAccessToken();
-      const result = await exportToLookerStudio2(spreadsheetId!, events, accessToken!);
+      // Obtener token actual
+      let currentToken = accessToken || driveService.getAccessToken();
+      
+      if (!currentToken) {
+        alert('❌ No hay token de acceso. Por favor, conecta con Google Drive primero.');
+        setIsExporting(false);
+        return;
+      }
+
+      const result = await exportToLookerStudio2(spreadsheetId, events, currentToken);
       
       if (result.success) {
         alert(`✅ ${result.message}`);
@@ -293,7 +297,7 @@ export function P3SwimlanesView({ events, onEventClick, currentUser }: P3Swimlan
     } finally {
       setIsExporting(false);
     }
-  }, [events]);
+  }, [spreadsheetId, accessToken, events]);
 
   // Obtener color según el estado
   const getTaskColor = (task: CalendarEvent) => {
