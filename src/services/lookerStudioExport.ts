@@ -43,6 +43,7 @@ export function generateLookerStudioData(events: CalendarEvent[]): LookerStudioR
       console.log(`📋 Evento ${index + 1}:`, {
         pedido: event.pedido,
         proyecto: event.proyecto,
+        product: event.product,
         unitPrice,
         plan,
         real,
