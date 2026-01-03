@@ -280,7 +280,7 @@ export function P3SwimlanesView({ events, onEventClick, currentUser }: P3Swimlan
     setIsExporting(true);
     try {
       const accessToken = driveService.getAccessToken();
-      const result = await exportToLookerStudio2(spreadsheetId, events, accessToken);
+      const result = await exportToLookerStudio2(spreadsheetId!, events, accessToken);
       
       if (result.success) {
         alert(`✅ ${result.message}`);
