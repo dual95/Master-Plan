@@ -5,6 +5,8 @@ import type { CalendarEvent } from '../../types';
 import type { User } from '../../services/authService';
 import { useAppActions } from '../../hooks/useApp';
 import { QuickTaskPicker } from '../../components/QuickTaskPicker';
+import { exportToLookerStudio2 } from '../../services/lookerStudioExport';
+import { driveService } from '../../services/googleDrive';
 import './P3SwimlanesView.css';
 
 // Procesos de Planta 3
@@ -25,6 +27,7 @@ export function P3SwimlanesView({ events, onEventClick, currentUser }: P3Swimlan
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { locale: es, weekStartsOn: 1 }));
   const [showQuickPicker, setShowQuickPicker] = useState(false);
   const [quickPickerTarget, setQuickPickerTarget] = useState<{ process: P3Process; date: Date } | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Calcular rango de fechas a mostrar
   const dateRange = useMemo(() => {
@@ -261,6 +264,37 @@ export function P3SwimlanesView({ events, onEventClick, currentUser }: P3Swimlan
     setCurrentWeekStart(startOfWeek(new Date(), { locale: es, weekStartsOn: 1 }));
   }, []);
 
+  // Función para exportar a Looker Studio 2
+  const handleExportToLookerStudio = useCallback(async () => {
+    if (!driveService.isSignedIn()) {
+      alert('❌ Debes conectarte a Google Drive primero');
+      return;
+    }
+
+    const spreadsheetId = localStorage.getItem('currentSpreadsheetId');
+    if (!spreadsheetId) {
+      alert('❌ No hay un archivo de Google Sheets seleccionado');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const accessToken = driveService.getAccessToken();
+      const result = await exportToLookerStudio2(spreadsheetId, events, accessToken);
+      
+      if (result.success) {
+        alert(`✅ ${result.message}`);
+      } else {
+        alert(`❌ ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Error exportando a Looker Studio 2:', error);
+      alert(`❌ Error al exportar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [events]);
+
   // Obtener color según el estado
   const getTaskColor = (task: CalendarEvent) => {
     // Normalizar updateStatus a mayúsculas para comparación
@@ -301,6 +335,27 @@ export function P3SwimlanesView({ events, onEventClick, currentUser }: P3Swimlan
           </div>
         </div>
         <div className="header-right">
+          {isAdmin && (
+            <button
+              className="export-button"
+              onClick={handleExportToLookerStudio}
+              disabled={isExporting}
+              title="Exportar a Looker Studio (Hoja LOOKERSTUDIO2)"
+              style={{
+                marginRight: '10px',
+                padding: '8px 16px',
+                backgroundColor: isExporting ? '#ccc' : '#4caf50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: isExporting ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              {isExporting ? '⏳ Exportando...' : '📊 Exportar a Looker Studio'}
+            </button>
+          )}
           <div className="date-filters">
             <button
               className={dateFilter === 'week' ? 'active' : ''}

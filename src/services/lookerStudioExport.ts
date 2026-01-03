@@ -390,3 +390,269 @@ async function formatLookerStudioSheet(
     }
   );
 }
+
+// ==================== LOOKER STUDIO 2 (PLANTA 3) ====================
+
+export interface LookerStudio2Row {
+  ID: string;
+  PEDIDO: string;
+  POS: number;
+  PROYECTO: string;
+  PROCESO: string;
+  ESTATUS: string;
+}
+
+/**
+ * Genera los datos para exportar a Looker Studio 2 desde eventos de P3
+ * Solo incluye la tarea más reciente para cada combinación única de PEDIDO+POS+PROCESO
+ */
+export function generateLookerStudio2Data(events: CalendarEvent[]): LookerStudio2Row[] {
+  // Filtrar solo eventos de P3
+  const p3Events = events.filter(event => event.planta === 'P3');
+  
+  console.log(`📊 Generando datos Looker Studio 2 para ${p3Events.length} eventos de P3`);
+  
+  // Agrupar por PEDIDO + POS + PROCESO y tomar solo la más reciente
+  const groupedMap = new Map<string, CalendarEvent>();
+  
+  p3Events.forEach(event => {
+    const key = `${event.pedido || ''}-${event.pos || 0}-${event.processType || event.category || ''}`;
+    const existing = groupedMap.get(key);
+    
+    if (!existing) {
+      groupedMap.set(key, event);
+    } else {
+      // Comparar fechas y quedarse con la más reciente
+      const existingDate = new Date(existing.start);
+      const currentDate = new Date(event.start);
+      
+      if (currentDate > existingDate) {
+        groupedMap.set(key, event);
+      }
+    }
+  });
+  
+  console.log(`📊 ${groupedMap.size} tareas únicas después de deduplicación (de ${p3Events.length} totales)`);
+  
+  // Convertir a filas
+  const rows: LookerStudio2Row[] = Array.from(groupedMap.values()).map((event, index) => {
+    const pedido = event.pedido || '';
+    const pos = event.pos || 0;
+    const id = `${pedido}${pos}`;
+    const proyecto = event.product || '';
+    const proceso = event.processType || event.category || '';
+    
+    // Mapear status a español
+    let estatus = '';
+    if (event.updateStatus) {
+      estatus = event.updateStatus;
+    } else {
+      const statusMap: { [key: string]: string } = {
+        'completed': 'COMPLETADO',
+        'in-progress': 'EN PROCESO',
+        'pending': 'PENDIENTE',
+        'cancelled': 'CANCELADO'
+      };
+      estatus = statusMap[event.status] || event.status?.toUpperCase() || 'PENDIENTE';
+    }
+    
+    // Debug: Log de los primeros 3 eventos
+    if (index < 3) {
+      console.log(`📋 P3 Evento ${index + 1}:`, {
+        id,
+        pedido,
+        pos,
+        proyecto,
+        proceso,
+        estatus,
+        fecha: event.start
+      });
+    }
+    
+    const row: LookerStudio2Row = {
+      ID: id,
+      PEDIDO: pedido,
+      POS: pos,
+      PROYECTO: proyecto,
+      PROCESO: proceso,
+      ESTATUS: estatus
+    };
+    
+    return row;
+  });
+  
+  // Ordenar por PEDIDO y POS
+  rows.sort((a, b) => {
+    const pedidoCompare = a.PEDIDO.localeCompare(b.PEDIDO);
+    if (pedidoCompare !== 0) return pedidoCompare;
+    return a.POS - b.POS;
+  });
+  
+  console.log(`✅ Generadas ${rows.length} filas para Looker Studio 2 (ordenadas por pedido y pos)`);
+  
+  return rows;
+}
+
+/**
+ * Exporta los datos de P3 a Google Sheets en la hoja LOOKERSTUDIO2
+ */
+export async function exportToLookerStudio2(
+  spreadsheetId: string,
+  events: CalendarEvent[],
+  accessToken: string
+): Promise<{ success: boolean; message: string; rowsExported?: number }> {
+  try {
+    console.log('🚀 Iniciando exportación a Looker Studio 2 (P3)...');
+    
+    // Generar datos
+    const data = generateLookerStudio2Data(events);
+    
+    if (data.length === 0) {
+      return {
+        success: false,
+        message: 'No hay datos de Planta 3 para exportar'
+      };
+    }
+    
+    const sheetName = 'LOOKERSTUDIO2';
+    
+    // 1. Verificar si la hoja existe, si no crearla
+    const sheetExists = await checkSheetExists(spreadsheetId, sheetName, accessToken);
+    
+    if (!sheetExists) {
+      console.log(`📝 Creando hoja ${sheetName}...`);
+      await createSheet(spreadsheetId, sheetName, accessToken);
+    } else {
+      console.log(`✅ Hoja ${sheetName} ya existe`);
+    }
+    
+    // 2. Limpiar la hoja antes de escribir
+    console.log('🧹 Limpiando datos anteriores...');
+    await clearSheet(spreadsheetId, sheetName, accessToken);
+    
+    // 3. Preparar datos para escribir (headers + datos)
+    const headers = ['ID', 'PEDIDO', 'POS', 'PROYECTO', 'PROCESO', 'ESTATUS'];
+    const values = [
+      headers,
+      ...data.map(row => [
+        row.ID,
+        row.PEDIDO,
+        row.POS,
+        row.PROYECTO,
+        row.PROCESO,
+        row.ESTATUS
+      ])
+    ];
+    
+    console.log(`📊 Total valores a escribir: ${values.length} filas (incluyendo header)`);
+    
+    // 4. Escribir datos
+    console.log(`📝 Escribiendo ${data.length} filas...`);
+    await writeToSheet(spreadsheetId, sheetName, values, accessToken);
+    
+    // 5. Formatear la hoja
+    console.log('🎨 Aplicando formato...');
+    await formatLookerStudio2Sheet(spreadsheetId, sheetName, accessToken);
+    
+    console.log('✅ Exportación a Looker Studio 2 completada exitosamente');
+    
+    return {
+      success: true,
+      message: `Se exportaron ${data.length} filas a la hoja ${sheetName}`,
+      rowsExported: data.length
+    };
+    
+  } catch (error) {
+    console.error('❌ Error en exportación a Looker Studio 2:', error);
+    return {
+      success: false,
+      message: `Error al exportar: ${error instanceof Error ? error.message : 'Error desconocido'}`
+    };
+  }
+}
+
+/**
+ * Aplica formato a la hoja LOOKERSTUDIO2
+ */
+async function formatLookerStudio2Sheet(
+  spreadsheetId: string,
+  sheetName: string,
+  accessToken: string
+): Promise<void> {
+  // Obtener el sheetId
+  const metadataResponse = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+    {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    }
+  );
+  
+  const metadata = await metadataResponse.json();
+  const sheet = metadata.sheets.find((s: any) => s.properties.title === sheetName);
+  const sheetId = sheet?.properties?.sheetId;
+  
+  if (!sheetId) {
+    console.warn('No se pudo obtener sheetId para formatear');
+    return;
+  }
+  
+  const requests = [
+    // Formato del header
+    {
+      repeatCell: {
+        range: {
+          sheetId: sheetId,
+          startRowIndex: 0,
+          endRowIndex: 1
+        },
+        cell: {
+          userEnteredFormat: {
+            backgroundColor: { red: 0.2, green: 0.4, blue: 0.6 },
+            textFormat: {
+              foregroundColor: { red: 1, green: 1, blue: 1 },
+              bold: true,
+              fontSize: 11
+            },
+            horizontalAlignment: 'CENTER'
+          }
+        },
+        fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
+      }
+    },
+    // Congelar primera fila
+    {
+      updateSheetProperties: {
+        properties: {
+          sheetId: sheetId,
+          gridProperties: {
+            frozenRowCount: 1
+          }
+        },
+        fields: 'gridProperties.frozenRowCount'
+      }
+    },
+    // Auto-resize columnas
+    {
+      autoResizeDimensions: {
+        dimensions: {
+          sheetId: sheetId,
+          dimension: 'COLUMNS',
+          startIndex: 0,
+          endIndex: 6
+        }
+      }
+    }
+  ];
+  
+  await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ requests })
+    }
+  );
+}
