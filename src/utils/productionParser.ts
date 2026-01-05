@@ -433,7 +433,7 @@ function generateAutomaticTasksForProduct(
       title: generateStandardTaskName(item.proyecto, item.componente, processType),
       start: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
       end: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
-      description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[PROCESO AUTOMÁTICO]`,
+      description: `Pedido: ${item.pedido}\nPosición: ${item.pos}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[PROCESO AUTOMÁTICO]`,
       priority: determineTaskPriority(item.fechaEstimacion),
       status: 'pending',
       category: processType,
@@ -500,7 +500,7 @@ function generateAutomaticTasksForProduct(
       title: generateStandardTaskName(item.proyecto, item.componente, 'ENSAMBLAJE'),
       start: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
       end: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
-      description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[ENSAMBLAJE AUTOMÁTICO]`,
+      description: `Pedido: ${item.pedido}\nPosición: ${item.pos}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[ENSAMBLAJE AUTOMÁTICO]`,
       priority: determineTaskPriority(item.fechaEstimacion),
       status: 'pending',
       category: 'ENSAMBLAJE',
@@ -654,7 +654,7 @@ function generateTasksForProduct(
         title: generateStandardTaskName(item.proyecto, item.componente, processType),
         start: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
         end: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
-        description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
+        description: `Pedido: ${item.pedido}\nPosición: ${item.pos}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
         priority: determineTaskPriority(item.fechaEstimacion),
         status: 'pending',
         category: processType,
@@ -712,7 +712,7 @@ function generateTasksForProduct(
         title: generateStandardTaskName(item.proyecto, item.componente, 'ENSAMBLAJE'),
         start: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
         end: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
-        description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
+        description: `Pedido: ${item.pedido}\nPosición: ${item.pos}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
         priority: determineTaskPriority(item.fechaEstimacion),
         status: 'pending',
         isScheduled: false, // Marcar como NO programada
