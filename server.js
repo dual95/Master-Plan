@@ -185,7 +185,7 @@ app.get('/api/events', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/events - Guardar eventos (modo merge: agregar nuevos, mantener existentes)
+// POST /api/events - Guardar eventos (modo upsert: insertar nuevos, actualizar existentes)
 app.post('/api/events', async (req, res) => {
   try {
     const { events } = req.body;
@@ -194,7 +194,7 @@ app.post('/api/events', async (req, res) => {
       return res.status(400).json({ error: 'Se esperaba un array de eventos' });
     }
 
-    console.log(`💾 Procesando ${events.length} eventos para merge...`);
+    console.log(`💾 Procesando ${events.length} eventos para upsert...`);
 
     // Iniciar transacción
     const client = await pool.connect();
@@ -207,29 +207,37 @@ app.post('/api/events', async (req, res) => {
       
       console.log(`📊 Eventos existentes en BD: ${existingIds.size}`);
       
-      // Filtrar solo eventos NUEVOS (que no existen en BD)
-      const newEvents = events.filter(event => !existingIds.has(event.id));
+      let newCount = 0;
+      let updatedCount = 0;
       
-      console.log(`➕ Nuevos eventos a agregar: ${newEvents.length}`);
-      console.log(`⏭️  Eventos duplicados ignorados: ${events.length - newEvents.length}`);
-      
-      // Insertar solo los nuevos eventos
-      for (const event of newEvents) {
-        await client.query(
-          'INSERT INTO events (id, data, updated_at) VALUES ($1, $2, NOW())',
-          [event.id, JSON.stringify(event)]
-        );
+      // Procesar cada evento: insertar si es nuevo, actualizar si existe
+      for (const event of events) {
+        if (existingIds.has(event.id)) {
+          // Actualizar evento existente
+          await client.query(
+            'UPDATE events SET data = $1, updated_at = NOW() WHERE id = $2',
+            [JSON.stringify(event), event.id]
+          );
+          updatedCount++;
+        } else {
+          // Insertar nuevo evento
+          await client.query(
+            'INSERT INTO events (id, data, updated_at) VALUES ($1, $2, NOW())',
+            [event.id, JSON.stringify(event)]
+          );
+          newCount++;
+        }
       }
       
       await client.query('COMMIT');
-      console.log(`✅ ${newEvents.length} eventos nuevos guardados exitosamente`);
+      console.log(`✅ ${newCount} eventos nuevos, ${updatedCount} eventos actualizados`);
       
       res.json({ 
         success: true, 
-        message: `${newEvents.length} eventos nuevos agregados (${events.length - newEvents.length} duplicados ignorados)`,
-        newEventsCount: newEvents.length,
-        duplicatesIgnored: events.length - newEvents.length,
-        totalEvents: existingIds.size + newEvents.length,
+        message: `${newCount} nuevos, ${updatedCount} actualizados`,
+        newEventsCount: newCount,
+        updatedEventsCount: updatedCount,
+        totalEvents: existingIds.size - updatedCount + newCount + updatedCount,
         lastUpdated: new Date().toISOString()
       });
     } catch (error) {
