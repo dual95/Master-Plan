@@ -7,6 +7,20 @@ import type {
   ProcessConfiguration 
 } from '../types';
 
+/**
+ * Compara dos tasks/events por su identificador genérico (pedido + pos + processType)
+ * Usado para detectar duplicados al cargar desde Excel
+ */
+export function isSameProductionTask(task1: CalendarEvent | ProductionTask, task2: CalendarEvent | ProductionTask): boolean {
+  return !!(
+    task1.pedido && 
+    task2.pedido && 
+    task1.pedido === task2.pedido &&
+    task1.pos === task2.pos &&
+    task1.processType === task2.processType
+  );
+}
+
 // Configuración de procesos estándar por tipo de material
 export const STANDARD_PROCESSES: ProcessConfiguration = {
   'BOLSA': [

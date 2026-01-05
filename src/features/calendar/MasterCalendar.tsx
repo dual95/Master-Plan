@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useRef } from 'react';
+import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
@@ -41,7 +41,7 @@ interface MasterCalendarProps {
 
 export function MasterCalendar({ height = 600, currentUser }: MasterCalendarProps) {
   const { state } = useApp();
-  const { setError, updateEvent, addEvent, deleteEvent, clearPersistedData } = useAppActions();
+  const { setError, updateEvent, addEvent, deleteEvent, clearPersistedData, setEvents } = useAppActions();
   
   // Estado para el modal
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -55,6 +55,38 @@ export function MasterCalendar({ height = 600, currentUser }: MasterCalendarProp
 
   // Estado para la pestaña activa (P3 o P2)
   const [activePlant, setActivePlant] = useState<'P3' | 'P2'>('P3');
+
+  // Recargar eventos desde BD cuando se monta el componente (al cambiar a pestaña Calendario)
+  useEffect(() => {
+    async function reloadFromDatabase() {
+      try {
+        console.log('📂 Recargando eventos desde base de datos...');
+        const persistedState = await persistenceService.loadEvents();
+        
+        if (persistedState && persistedState.events && persistedState.events.length > 0) {
+          // Solo recargar si hay eventos en BD y son diferentes a los actuales
+          const currentEventIds = new Set(state.events.map(e => e.id));
+          const dbEventIds = new Set(persistedState.events.map(e => e.id));
+          
+          const hasChanges = 
+            state.events.length !== persistedState.events.length ||
+            persistedState.events.some(e => !currentEventIds.has(e.id)) ||
+            state.events.some(e => !dbEventIds.has(e.id));
+          
+          if (hasChanges) {
+            console.log(`🔄 Sincronizando: ${persistedState.events.length} eventos desde BD`);
+            setEvents(persistedState.events); // Actualizar estado con eventos de BD
+          } else {
+            console.log('✅ Eventos ya sincronizados, no se requiere recarga');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error recargando desde BD:', error);
+      }
+    }
+    
+    reloadFromDatabase();
+  }, []); // Solo al montar, no cuando cambie state.events
 
   // Función para calcular las semanas visibles en la vista del mes
   const getVisibleWeeks = useCallback((date: Date) => {

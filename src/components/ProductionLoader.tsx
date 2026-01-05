@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import { useAppActions } from '../hooks/useApp';
+import { useAppActions, useApp } from '../hooks/useApp';
 import { 
   parseProductionSpreadsheet, 
   generateSampleProductionData, 
   convertTasksToCalendarEvents,
+  isSameProductionTask,
   type ProductionPlan 
 } from '../utils/productionParser';
 import { driveService } from '../services/googleDrive';
@@ -22,6 +23,7 @@ export function ProductionLoader() {
   const [spreadsheetData, setSpreadsheetData] = useState<any>(null);
   
   const { setEvents, setSelectedFile } = useAppActions();
+  const { state } = useApp(); // Para acceder a eventos existentes
 
   // Cargar lista de archivos de Google Drive
   const loadDriveFiles = useCallback(async () => {
@@ -90,8 +92,24 @@ export function ProductionLoader() {
       // Convertir a eventos de calendario
       const calendarEvents = convertTasksToCalendarEvents(productionPlan.tasks);
       
+      // 🔄 MERGE: Combinar con eventos existentes, evitando duplicados
+      const existingEvents = state.events;
+      
+      // Filtrar solo eventos NUEVOS (que no existen según pedido+pos+processType)
+      const newEvents = calendarEvents.filter(newEvent => 
+        !existingEvents.some(existing => isSameProductionTask(existing, newEvent))
+      );
+      
+      // Combinar existentes + nuevos
+      const mergedEvents = [...existingEvents, ...newEvents];
+      
+      console.log(`📊 Eventos existentes: ${existingEvents.length}`);
+      console.log(`➕ Eventos nuevos del Excel: ${newEvents.length}`);
+      console.log(`⏭️  Duplicados ignorados: ${calendarEvents.length - newEvents.length}`);
+      console.log(`📦 Total después de merge: ${mergedEvents.length}`);
+      
       setProductionPlan(productionPlan);
-      setEvents(calendarEvents);
+      setEvents(mergedEvents); // Usar merged en lugar de solo calendarEvents
       
       const p3Tasks = productionPlan.tasks.filter(t => t.planta === 'P3');
       const p2Tasks = productionPlan.tasks.filter(t => t.planta === 'P2');
@@ -101,7 +119,7 @@ export function ProductionLoader() {
       const actualSheetName = spreadsheetResult.sheetName || selectedSheet || 'Sin nombre';
       setProcessingStatus(
         `✅ Procesado desde ${fileType} hoja "${actualSheetName}": ${productionPlan.items.length} productos → ` +
-        `${p3Tasks.length} tareas P3 (Producción) + ${p2Tasks.length} tareas P2 (Ensamblaje)`
+        `${newEvents.length} tareas nuevas agregadas (${calendarEvents.length - newEvents.length} duplicados ignorados)`
       );
       setShowTaskList(true);
       
