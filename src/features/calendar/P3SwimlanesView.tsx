@@ -183,7 +183,8 @@ export function P3SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
         processType: targetProcess,
         category: targetProcess,
         start: newStart.toISOString(),
-        end: newEnd.toISOString()
+        end: newEnd.toISOString(),
+        isScheduled: true // Marcar como programada
       };
       
       console.log('📋 Duplicando tarea:', draggedTask.title, 'a proceso', targetProcess);
@@ -195,7 +196,8 @@ export function P3SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
         processType: targetProcess,
         category: targetProcess,
         start: newStart.toISOString(),
-        end: newEnd.toISOString()
+        end: newEnd.toISOString(),
+        isScheduled: true // Marcar como programada
       };
 
       updateEvent(updatedEvent);
@@ -237,6 +239,7 @@ export function P3SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
       category: process,
       start: date.toISOString(),
       end: date.toISOString(),
+      isScheduled: true, // Marcar como programada cuando se asigna manualmente
     };
 
     updateEvent(updatedTask);
@@ -323,7 +326,8 @@ export function P3SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     return '#9e9e9e'; // Gris
   };
 
-  const p3Events = events.filter(e => e.planta === 'P3');
+  // Filtrar tareas de P3 Y que estén programadas (isScheduled !== false)
+  const p3Events = events.filter(e => e.planta === 'P3' && e.isScheduled !== false);
   const today = new Date();
 
   return (

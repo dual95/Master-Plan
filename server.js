@@ -185,7 +185,7 @@ app.get('/api/events', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/events - Guardar todos los eventos (sobrescribe)
+// POST /api/events - Guardar eventos (modo merge: agregar nuevos, mantener existentes)
 app.post('/api/events', async (req, res) => {
   try {
     const { events } = req.body;
@@ -194,18 +194,27 @@ app.post('/api/events', async (req, res) => {
       return res.status(400).json({ error: 'Se esperaba un array de eventos' });
     }
 
-    console.log(`💾 Guardando ${events.length} eventos...`);
+    console.log(`💾 Procesando ${events.length} eventos para merge...`);
 
     // Iniciar transacción
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       
-      // Eliminar todos los eventos existentes
-      await client.query('DELETE FROM events');
+      // Obtener IDs de eventos existentes
+      const existingResult = await client.query('SELECT id FROM events');
+      const existingIds = new Set(existingResult.rows.map(row => row.id));
       
-      // Insertar nuevos eventos
-      for (const event of events) {
+      console.log(`📊 Eventos existentes en BD: ${existingIds.size}`);
+      
+      // Filtrar solo eventos NUEVOS (que no existen en BD)
+      const newEvents = events.filter(event => !existingIds.has(event.id));
+      
+      console.log(`➕ Nuevos eventos a agregar: ${newEvents.length}`);
+      console.log(`⏭️  Eventos duplicados ignorados: ${events.length - newEvents.length}`);
+      
+      // Insertar solo los nuevos eventos
+      for (const event of newEvents) {
         await client.query(
           'INSERT INTO events (id, data, updated_at) VALUES ($1, $2, NOW())',
           [event.id, JSON.stringify(event)]
@@ -213,11 +222,14 @@ app.post('/api/events', async (req, res) => {
       }
       
       await client.query('COMMIT');
-      console.log(`✅ ${events.length} eventos guardados exitosamente`);
+      console.log(`✅ ${newEvents.length} eventos nuevos guardados exitosamente`);
       
       res.json({ 
         success: true, 
-        message: `${events.length} eventos guardados`,
+        message: `${newEvents.length} eventos nuevos agregados (${events.length - newEvents.length} duplicados ignorados)`,
+        newEventsCount: newEvents.length,
+        duplicatesIgnored: events.length - newEvents.length,
+        totalEvents: existingIds.size + newEvents.length,
         lastUpdated: new Date().toISOString()
       });
     } catch (error) {

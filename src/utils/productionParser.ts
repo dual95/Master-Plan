@@ -417,12 +417,13 @@ function generateAutomaticTasksForProduct(
     const task: ProductionTask = {
       id: taskId,
       title: generateStandardTaskName(item.proyecto, item.componente, processType),
-      start: new Date(),
-      end: new Date(new Date().setHours(23,59,59,999)), // Termina el mismo día
+      start: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
+      end: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
       description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[PROCESO AUTOMÁTICO]`,
       priority: determineTaskPriority(item.fechaEstimacion),
       status: 'pending',
       category: processType,
+      isScheduled: false, // Marcar como NO programada
       
       // Datos específicos de producción
       productId: item.id,
@@ -483,12 +484,13 @@ function generateAutomaticTasksForProduct(
     const ensambleTask: ProductionTask = {
       id: ensambleTaskId,
       title: generateStandardTaskName(item.proyecto, item.componente, 'ENSAMBLAJE'),
-      start: new Date(),
-      end: new Date(new Date().setHours(23,59,59,999)), // Termina el mismo día
+      start: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
+      end: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
       description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}\n[ENSAMBLAJE AUTOMÁTICO]`,
       priority: determineTaskPriority(item.fechaEstimacion),
       status: 'pending',
       category: 'ENSAMBLAJE',
+      isScheduled: false, // Marcar como NO programada
       
       // Datos específicos de producción
       productId: item.id,
@@ -636,12 +638,13 @@ function generateTasksForProduct(
       const task: ProductionTask = {
         id: taskId,
         title: generateStandardTaskName(item.proyecto, item.componente, processType),
-        start: new Date(),
-        end: new Date(new Date().setHours(23,59,59,999)), // Termina el mismo día
+        start: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
+        end: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
         description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
         priority: determineTaskPriority(item.fechaEstimacion),
         status: 'pending',
         category: processType,
+        isScheduled: false, // Marcar como NO programada
         
         // Datos específicos de producción
         productId: item.id,
@@ -693,11 +696,12 @@ function generateTasksForProduct(
       const ensambleTask: ProductionTask = {
         id: ensambleTaskId,
         title: generateStandardTaskName(item.proyecto, item.componente, 'ENSAMBLAJE'),
-        start: new Date(),
-        end: new Date(new Date().setHours(23,59,59,999)), // Termina el mismo día
+        start: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
+        end: new Date('1970-01-01'), // Fecha placeholder para tasks sin programar
         description: `Pedido: ${item.pedido}\nProyecto: ${item.proyecto}\nComponente: ${item.componente}\nMaterial: ${item.material}\nCantidad: ${item.quantity}`,
         priority: determineTaskPriority(item.fechaEstimacion),
         status: 'pending',
+        isScheduled: false, // Marcar como NO programada
         category: 'ENSAMBLAJE',
         
         // Datos específicos de producción

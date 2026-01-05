@@ -162,7 +162,8 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
         linea: targetLine,
         machine: targetLine,
         start: newStart.toISOString(),
-        end: newEnd.toISOString()
+        end: newEnd.toISOString(),
+        isScheduled: true // Marcar como programada
       };
       
       console.log('📋 Duplicando tarea:', draggedTask.title, 'a', targetLine);
@@ -174,7 +175,8 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
         linea: targetLine,
         machine: targetLine,
         start: newStart.toISOString(),
-        end: newEnd.toISOString()
+        end: newEnd.toISOString(),
+        isScheduled: true // Marcar como programada
       };
 
       updateEvent(updatedEvent);
@@ -216,6 +218,7 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
       machine: line,
       start: date.toISOString(),
       end: date.toISOString(),
+      isScheduled: true, // Marcar como programada cuando se asigna manualmente
     };
 
     updateEvent(updatedTask);
@@ -358,7 +361,8 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
 
 
 
-  const p2Events = events.filter(e => e.planta === 'P2');
+  // Filtrar tareas de P2 Y que estén programadas (isScheduled !== false)
+  const p2Events = events.filter(e => e.planta === 'P2' && e.isScheduled !== false);
   const today = new Date();
 
   return (

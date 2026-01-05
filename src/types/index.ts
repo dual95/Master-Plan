@@ -42,6 +42,9 @@ export interface CalendarEvent {
   // Campos manuales (no vienen del Excel)
   esperado?: number; // Valor esperado (manual)
   real?: number; // Valor real (manual)
+  
+  // Campo para identificar si la task está programada en el calendario
+  isScheduled?: boolean; // true = tiene fecha/hora asignada, false/undefined = sin programar
 }
 
 // Tipos para datos de Google Drive

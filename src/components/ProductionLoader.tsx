@@ -3,8 +3,7 @@ import { useAppActions } from '../hooks/useApp';
 import { 
   parseProductionSpreadsheet, 
   generateSampleProductionData, 
-  convertTasksToCalendarEvents, 
-  scheduleProductionTasks,
+  convertTasksToCalendarEvents,
   type ProductionPlan 
 } from '../utils/productionParser';
 import { driveService } from '../services/googleDrive';
@@ -85,9 +84,8 @@ export function ProductionLoader() {
       // Parsear los datos de la hoja de cálculo
       const productionPlan = parseProductionSpreadsheet(spreadsheetResult.rows);
       
-      // Programar las tareas automáticamente
-      const scheduledTasks = scheduleProductionTasks(productionPlan.tasks);
-      productionPlan.tasks = scheduledTasks;
+      // NO programar automáticamente - las tareas quedan sin asignar
+      // El usuario las asignará manualmente usando QuickTaskPicker
       
       // Convertir a eventos de calendario
       const calendarEvents = convertTasksToCalendarEvents(productionPlan.tasks);
