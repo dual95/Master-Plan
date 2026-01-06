@@ -326,8 +326,8 @@ export function P3SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     return '#9e9e9e'; // Gris
   };
 
-  // Filtrar tareas de P3 Y que estén programadas (isScheduled !== false)
-  const p3Events = events.filter(e => e.planta === 'P3' && e.isScheduled !== false);
+  // Filtrar tareas de P3 Y que estén EXPLÍCITAMENTE programadas (isScheduled === true)
+  const p3Events = events.filter(e => e.planta === 'P3' && e.isScheduled === true);
   const today = new Date();
 
   return (

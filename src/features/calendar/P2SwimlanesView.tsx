@@ -361,8 +361,8 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
 
 
 
-  // Filtrar tareas de P2 Y que estén programadas (isScheduled !== false)
-  const p2Events = events.filter(e => e.planta === 'P2' && e.isScheduled !== false);
+  // Filtrar tareas de P2 Y que estén EXPLÍCITAMENTE programadas (isScheduled === true)
+  const p2Events = events.filter(e => e.planta === 'P2' && e.isScheduled === true);
   const today = new Date();
 
   return (
