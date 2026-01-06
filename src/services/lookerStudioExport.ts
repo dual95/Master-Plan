@@ -21,10 +21,12 @@ export interface LookerStudioRow {
  * Genera los datos para exportar a Looker Studio desde eventos de P2
  */
 export function generateLookerStudioData(events: CalendarEvent[]): LookerStudioRow[] {
-  // Filtrar solo eventos de P2 (ensamblaje)
-  const p2Events = events.filter(event => event.planta === 'P2');
+  // Filtrar solo eventos de P2 (ensamblaje) Y que estén programados en calendario
+  const p2Events = events.filter(event => 
+    event.planta === 'P2' && event.isScheduled !== false
+  );
   
-  console.log(`📊 Generando datos Looker Studio para ${p2Events.length} eventos de P2`);
+  console.log(`📊 Generando datos Looker Studio para ${p2Events.length} eventos programados de P2`);
   
   const rows: LookerStudioRow[] = p2Events.map((event, index) => {
     const eventDate = new Date(event.start);
@@ -407,10 +409,12 @@ export interface LookerStudio2Row {
  * Solo incluye la tarea más reciente para cada combinación única de PEDIDO+POS+PROCESO
  */
 export function generateLookerStudio2Data(events: CalendarEvent[]): LookerStudio2Row[] {
-  // Filtrar solo eventos de P3
-  const p3Events = events.filter(event => event.planta === 'P3');
+  // Filtrar solo eventos de P3 Y que estén programados en calendario
+  const p3Events = events.filter(event => 
+    event.planta === 'P3' && event.isScheduled !== false
+  );
   
-  console.log(`📊 Generando datos Looker Studio 2 para ${p3Events.length} eventos de P3`);
+  console.log(`📊 Generando datos Looker Studio 2 para ${p3Events.length} eventos programados de P3`);
   
   // Agrupar por PEDIDO + POS + PROCESO y tomar solo la más reciente
   const groupedMap = new Map<string, CalendarEvent>();
