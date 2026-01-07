@@ -53,26 +53,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
           <p>Sistema de Gestión de Producción</p>
         </div>
 
-        <div className="login-tabs">
-          <button
-            className={isLogin ? 'active' : ''}
-            onClick={() => {
-              setIsLogin(true);
-              setError('');
-            }}
-          >
-            Iniciar Sesión
-          </button>
-          <button
-            className={!isLogin ? 'active' : ''}
-            onClick={() => {
-              setIsLogin(false);
-              setError('');
-            }}
-          >
-            Registrarse
-          </button>
-        </div>
+        {/* Tabs de login/registro deshabilitadas */}
 
         <form onSubmit={handleSubmit} className="login-form">
           {!isLogin && (
@@ -135,15 +116,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
           </button>
         </form>
 
-        <div className="login-footer">
-          <p className="info-text">
-            {isLogin ? (
-              <>¿No tienes cuenta? <button onClick={() => setIsLogin(false)} className="link-button">Regístrate aquí</button></>
-            ) : (
-              <>¿Ya tienes cuenta? <button onClick={() => setIsLogin(true)} className="link-button">Inicia sesión</button></>
-            )}
-          </p>
-        </div>
+        {/* Footer de registro deshabilitado */}
       </div>
     </div>
   );
