@@ -1,10 +1,12 @@
 const API_BASE_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3000/api';
 
+export type UserRole = 'admin' | 'user' | 'observer';
+
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: string;
+  role: UserRole;
 }
 
 export interface AuthResponse {

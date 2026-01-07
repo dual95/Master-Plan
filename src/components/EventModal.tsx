@@ -14,6 +14,7 @@ interface EventModalProps {
 
 export function EventModal({ event, isOpen, onClose, onSave, onDelete, currentUser }: EventModalProps) {
   const isAdmin = currentUser?.role === 'admin';
+  const isObserver = currentUser?.role === 'observer';
   const [formData, setFormData] = useState<CalendarEvent>({
     id: '',
     title: '',
@@ -194,7 +195,11 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete, currentUs
                 id="status"
                 value={formData.status}
                 onChange={(e) => handleChange('status', e.target.value)}
-                style={{ borderColor: '#2196f3', borderWidth: '2px' }}
+                disabled={isObserver}
+                style={isObserver 
+                  ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' }
+                  : { borderColor: '#2196f3', borderWidth: '2px' }
+                }
               >
                 <option value="pending">⏳ Pendiente</option>
                 <option value="in-progress">🔄 En Progreso</option>
@@ -249,7 +254,7 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete, currentUs
             </div>
 
             <div className="form-group">
-              <label htmlFor="real">📈 Real {!isAdmin && '(Editable)'}</label>
+              <label htmlFor="real">📈 Real {!isAdmin && !isObserver && '(Editable)'}</label>
               <input
                 id="real"
                 type="number"
@@ -257,7 +262,13 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete, currentUs
                 value={formData.real || ''}
                 onChange={(e) => handleChange('real', e.target.value)}
                 placeholder="Valor real"
-                style={!isAdmin ? { borderColor: '#4caf50', borderWidth: '2px' } : {}}
+                readOnly={isObserver}
+                style={isObserver 
+                  ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' }
+                  : !isAdmin 
+                    ? { borderColor: '#4caf50', borderWidth: '2px' }
+                    : {}
+                }
               />
             </div>
           </div>
