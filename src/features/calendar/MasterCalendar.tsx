@@ -40,6 +40,7 @@ interface MasterCalendarProps {
 }
 
 export function MasterCalendar({ height = 600, currentUser }: MasterCalendarProps) {
+  const isAdmin = currentUser?.role === 'admin';
   const { state } = useApp();
   const { setError, updateEvent, addEvent, deleteEvent, clearPersistedData, setEvents } = useAppActions();
   
@@ -413,16 +414,18 @@ export function MasterCalendar({ height = 600, currentUser }: MasterCalendarProp
         <div className="header-top">
           <h2>Master Plan - Calendario</h2>
           <div className="header-actions">
-            <button 
-              className="new-event-button"
-              onClick={() => {
-                setSelectedEvent(null);
-                setIsModalOpen(true);
-              }}
-            >
-              ➕ Nuevo Evento
-            </button>
-            {persistenceService.hasPersistedData() && (
+            {isAdmin && (
+              <button 
+                className="new-event-button"
+                onClick={() => {
+                  setSelectedEvent(null);
+                  setIsModalOpen(true);
+                }}
+              >
+                ➕ Nuevo Evento
+              </button>
+            )}
+            {isAdmin && persistenceService.hasPersistedData() && (
               <button 
                 className="clear-data-button"
                 onClick={async () => {
