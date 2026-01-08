@@ -199,6 +199,12 @@ export function QuickTaskPicker({
                   {result.event.proyecto || 'Sin proyecto'}
                 </span>
                 
+                {result.event.componente && (
+                  <span className="result-componente">
+                    {result.event.componente}
+                  </span>
+                )}
+                
                 {result.event.planta === 'P2' && result.event.linea && (
                   <span className="result-location">📍 {result.event.linea}</span>
                 )}
