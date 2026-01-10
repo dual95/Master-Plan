@@ -447,37 +447,6 @@ export function MasterCalendar({ height = 600, currentUser }: MasterCalendarProp
                 ➕ Nuevo Evento
               </button>
             )}
-            {isAdmin && (
-              <button 
-                className="new-event-button"
-                onClick={async () => {
-                  if (window.confirm('¿Sincronizar colores de todos los eventos? Esto actualizará el campo updateStatus según el estado actual.')) {
-                    const syncedEvents = state.events.map(event => {
-                      let updateStatus = event.updateStatus;
-                      
-                      if (event.status === 'completed') {
-                        updateStatus = 'COMPLETED';
-                      } else if (event.status === 'in-progress') {
-                        updateStatus = 'IN PROCESS';
-                      } else if (event.status === 'cancelled') {
-                        updateStatus = 'CANCELED';
-                      } else if (event.status === 'pending') {
-                        updateStatus = 'PENDING';
-                      }
-                      
-                      return { ...event, updateStatus };
-                    });
-                    
-                    setEvents(syncedEvents);
-                    await persistenceService.saveEvents(syncedEvents);
-                    alert(`✅ ${syncedEvents.length} eventos sincronizados correctamente`);
-                  }
-                }}
-                style={{ backgroundColor: '#9c27b0' }}
-              >
-                🎨 Sincronizar Colores
-              </button>
-            )}
             {isAdmin && persistenceService.hasPersistedData() && (
               <button 
                 className="clear-data-button"
