@@ -84,10 +84,23 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete, currentUs
       return;
     }
 
+    // Sincronizar status con updateStatus para que los colores se actualicen
+    let updateStatus = formData.updateStatus;
+    if (formData.status === 'completed') {
+      updateStatus = 'COMPLETED';
+    } else if (formData.status === 'in-progress') {
+      updateStatus = 'IN PROCESS';
+    } else if (formData.status === 'cancelled' || formData.status === 'canceled') {
+      updateStatus = 'CANCELED';
+    } else if (formData.status === 'pending') {
+      updateStatus = 'PENDING';
+    }
+
     const eventToSave: CalendarEvent = {
       ...formData,
       id: formData.id || `event-${Date.now()}`,
-      title: formData.title.trim()
+      title: formData.title.trim(),
+      updateStatus // Sincronizar el updateStatus con el status
     };
 
     onSave(eventToSave);
