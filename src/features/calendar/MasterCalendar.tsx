@@ -65,18 +65,40 @@ export function MasterCalendar({ height = 600, currentUser }: MasterCalendarProp
         const persistedState = await persistenceService.loadEvents();
         
         if (persistedState && persistedState.events && persistedState.events.length > 0) {
+          // Sincronizar updateStatus con status para todos los eventos
+          const syncedEvents = persistedState.events.map(event => {
+            let updateStatus = event.updateStatus;
+            
+            // Si no tiene updateStatus o está desincronizado, sincronizar con status
+            if (event.status === 'completed') {
+              updateStatus = 'COMPLETED';
+            } else if (event.status === 'in-progress') {
+              updateStatus = 'IN PROCESS';
+            } else if (event.status === 'cancelled') {
+              updateStatus = 'CANCELED';
+            } else if (event.status === 'pending') {
+              updateStatus = 'PENDING';
+            }
+            
+            return { ...event, updateStatus };
+          });
+          
           // Solo recargar si hay eventos en BD y son diferentes a los actuales
           const currentEventIds = new Set(state.events.map(e => e.id));
-          const dbEventIds = new Set(persistedState.events.map(e => e.id));
+          const dbEventIds = new Set(syncedEvents.map(e => e.id));
           
           const hasChanges = 
-            state.events.length !== persistedState.events.length ||
-            persistedState.events.some(e => !currentEventIds.has(e.id)) ||
+            state.events.length !== syncedEvents.length ||
+            syncedEvents.some(e => !currentEventIds.has(e.id)) ||
             state.events.some(e => !dbEventIds.has(e.id));
           
           if (hasChanges) {
-            console.log(`🔄 Sincronizando: ${persistedState.events.length} eventos desde BD`);
-            setEvents(persistedState.events); // Actualizar estado con eventos de BD
+            console.log(`🔄 Sincronizando: ${syncedEvents.length} eventos desde BD`);
+            setEvents(syncedEvents); // Actualizar estado con eventos sincronizados
+            
+            // Guardar los eventos sincronizados de vuelta a BD
+            await persistenceService.saveEvents(syncedEvents);
+            console.log('✅ Eventos sincronizados y guardados con updateStatus actualizado');
           } else {
             console.log('✅ Eventos ya sincronizados, no se requiere recarga');
           }
