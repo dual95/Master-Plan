@@ -90,7 +90,7 @@ export function EventModal({ event, isOpen, onClose, onSave, onDelete, currentUs
       updateStatus = 'COMPLETED';
     } else if (formData.status === 'in-progress') {
       updateStatus = 'IN PROCESS';
-    } else if (formData.status === 'cancelled' || formData.status === 'canceled') {
+    } else if (formData.status === 'cancelled') {
       updateStatus = 'CANCELED';
     } else if (formData.status === 'pending') {
       updateStatus = 'PENDING';
