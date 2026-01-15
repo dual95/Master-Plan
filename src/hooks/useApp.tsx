@@ -44,9 +44,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     
     case 'DELETE_EVENT':
+      // En lugar de eliminar, marcamos como no programado (isScheduled: false)
       return {
         ...state,
-        events: state.events.filter(event => event.id !== action.payload),
+        events: state.events.map(event =>
+          event.id === action.payload 
+            ? { ...event, isScheduled: false, start: new Date('1970-01-01'), end: new Date('1970-01-01') }
+            : event
+        ),
       };
     
     case 'SET_SELECTED_FILE':
