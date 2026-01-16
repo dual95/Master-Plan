@@ -21,9 +21,12 @@ export function useSyncEvents(enabled: boolean = true) {
   useEffect(() => {
     if (!enabled) return;
 
+    console.log('🔧 Iniciando sincronización automática cada 5 segundos...');
+
     const syncEvents = async () => {
       // Evitar sincronizaciones concurrentes
       if (isSyncing) {
+        console.log('⏭️ Sync ya en progreso, saltando...');
         return;
       }
 
@@ -33,20 +36,25 @@ export function useSyncEvents(enabled: boolean = true) {
         // Obtener eventos del servidor
         const response = await apiService.syncEvents(lastSyncTime);
         
-        if (response.hasChanges && !isFirstSyncRef.current) {
-          // Merge: Last Write Wins - El servidor siempre gana
-          const serverEventIds = new Set(response.events.map((e: CalendarEvent) => e.id));
+        console.log(`📊 Sync response:`, {
+          hasChanges: response.hasChanges,
+          eventsCount: response.events.length,
+          serverTime: response.serverTime,
+          isFirstSync: isFirstSyncRef.current
+        });
+        
+        if (response.hasChanges) {
+          if (!isFirstSyncRef.current) {
+            console.log(`🔄 Sync: Detectados ${response.events.length} eventos actualizados desde servidor`);
+          }
           
-          // Mantener eventos locales que no están en el servidor
-          const localOnlyEvents = state.events.filter(e => !serverEventIds.has(e.id));
+          // MERGE COMPLETO: Actualizar todos los eventos con la versión del servidor
+          // El servidor es la fuente de verdad
+          setEvents(response.events);
           
-          // Combinar eventos del servidor + eventos locales únicos
-          const mergedEvents = [...response.events, ...localOnlyEvents];
-          
-          // Actualizar estado
-          setEvents(mergedEvents);
-          
-          console.log(`🔄 Sync: ${response.events.length} eventos actualizados desde servidor`);
+          console.log(`✅ Eventos actualizados: ${response.events.length} total`);
+        } else {
+          console.log('✅ No hay cambios nuevos');
         }
         
         // Actualizar timestamp de última sincronización
@@ -55,6 +63,7 @@ export function useSyncEvents(enabled: boolean = true) {
         // Marcar que ya no es la primera sincronización
         if (isFirstSyncRef.current) {
           isFirstSyncRef.current = false;
+          console.log('✅ Primera sincronización completada');
         }
         
       } catch (error) {
@@ -69,16 +78,17 @@ export function useSyncEvents(enabled: boolean = true) {
     syncEvents();
 
     // Configurar intervalo de sincronización
-    syncIntervalRef.current = setInterval(syncEvents, SYNC_INTERVAL);
+    syncIntervalRef.current = setInterval(syncEvents, SYNC_INTERVAL) as unknown as number;
 
     // Cleanup: limpiar intervalo al desmontar
     return () => {
+      console.log('🛑 Deteniendo sincronización automática');
       if (syncIntervalRef.current) {
         clearInterval(syncIntervalRef.current);
         syncIntervalRef.current = null;
       }
     };
-  }, [enabled, lastSyncTime, isSyncing, state.events, setEvents]);
+  }, [enabled]); // Solo depender de enabled para evitar recreación constante
 
   return {
     isSyncing,

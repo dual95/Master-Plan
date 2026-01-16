@@ -185,38 +185,32 @@ app.get('/api/events', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/events/sync - Sincronización optimizada (solo cambios desde lastSyncTime)
+// GET /api/events/sync - Sincronización optimizada (retorna TODOS los eventos siempre)
 app.get('/api/events/sync', authenticateToken, async (req, res) => {
   try {
     const { lastSyncTime } = req.query;
     
-    if (!lastSyncTime) {
-      // Si no hay lastSyncTime, retornar todos los eventos
-      const result = await pool.query('SELECT data FROM events ORDER BY updated_at DESC');
-      const events = result.rows.map(row => row.data);
+    // SIEMPRE retornar todos los eventos para garantizar sincronización completa
+    const result = await pool.query('SELECT data, updated_at FROM events ORDER BY updated_at DESC');
+    const allEvents = result.rows.map(row => row.data);
+    
+    // Determinar si hay cambios comparando con lastSyncTime
+    let hasChanges = false;
+    if (lastSyncTime) {
+      const lastSync = new Date(lastSyncTime);
+      hasChanges = result.rows.some(row => new Date(row.updated_at) > lastSync);
       
-      return res.json({
-        events,
-        serverTime: new Date().toISOString(),
-        hasChanges: events.length > 0
-      });
-    }
-    
-    // Buscar solo eventos modificados después de lastSyncTime
-    const result = await pool.query(
-      'SELECT data FROM events WHERE updated_at > $1 ORDER BY updated_at DESC',
-      [new Date(lastSyncTime)]
-    );
-    
-    const changedEvents = result.rows.map(row => row.data);
-    const hasChanges = changedEvents.length > 0;
-    
-    if (hasChanges) {
-      console.log(`🔄 Sync: ${changedEvents.length} eventos modificados desde ${lastSyncTime}`);
+      if (hasChanges) {
+        const changedCount = result.rows.filter(row => new Date(row.updated_at) > lastSync).length;
+        console.log(`🔄 Sync: ${changedCount} eventos modificados desde ${lastSyncTime}, enviando ${allEvents.length} total`);
+      }
+    } else {
+      hasChanges = allEvents.length > 0;
+      console.log(`🔄 Sync: Primera sincronización, enviando ${allEvents.length} eventos`);
     }
     
     res.json({
-      events: changedEvents,
+      events: allEvents,
       serverTime: new Date().toISOString(),
       hasChanges
     });

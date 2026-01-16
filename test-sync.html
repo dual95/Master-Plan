@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Sincronización Master Plan</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .panel {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .panel h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 4px;
+      height: 400px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #4CAF50;
+      padding-left: 10px;
+    }
+    .log-entry.error {
+      border-left-color: #f44336;
+      color: #ff6b6b;
+    }
+    .log-entry.info {
+      border-left-color: #2196F3;
+      color: #64b5f6;
+    }
+    .log-entry.success {
+      border-left-color: #4CAF50;
+      color: #81c784;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .status {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .status.syncing {
+      background: #FFC107;
+      color: #333;
+    }
+    .status.idle {
+      background: #4CAF50;
+      color: white;
+    }
+    input {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 200px;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔄 Test de Sincronización en Tiempo Real</h1>
+  <p>Abre esta página en 2 navegadores diferentes para probar la sincronización.</p>
+  
+  <div style="background: #fff3cd; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+    <strong>⚠️ Instrucciones:</strong>
+    <ol>
+      <li>Asegúrate de que el servidor esté corriendo: <code>npm start</code></li>
+      <li>Login en ambos navegadores</li>
+      <li>En un navegador, mueve una task en el calendario</li>
+      <li>Observa este panel para ver si se sincroniza en 5 segundos</li>
+    </ol>
+  </div>
+
+  <div class="container">
+    <div class="panel">
+      <h2>🖥️ Panel de Control</h2>
+      <div>
+        <label>Token JWT:</label><br>
+        <input type="text" id="token" placeholder="Pega tu token aquí">
+        <button onclick="saveToken()">💾 Guardar Token</button>
+      </div>
+      <div style="margin-top: 20px;">
+        <button onclick="startSync()">▶️ Iniciar Sync</button>
+        <button onclick="stopSync()">⏸️ Detener Sync</button>
+        <button onclick="manualSync()">🔄 Sync Manual</button>
+        <button onclick="clearLog()">🗑️ Limpiar Log</button>
+        <span class="status idle" id="status">Detenido</span>
+      </div>
+      <div style="margin-top: 20px;">
+        <strong>Estadísticas:</strong>
+        <ul>
+          <li>Syncs ejecutados: <span id="syncCount">0</span></li>
+          <li>Eventos totales: <span id="eventCount">0</span></li>
+          <li>Últimos cambios: <span id="lastChange">-</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>📊 Log de Sincronización</h2>
+      <div class="log" id="log">
+        <div class="log-entry info">✅ Sistema listo. Configura tu token y presiona "Iniciar Sync"</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let syncInterval = null;
+    let lastSyncTime = new Date().toISOString();
+    let syncCount = 0;
+    let eventCount = 0;
+    const API_URL = 'http://localhost:3000';
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      const timestamp = new Date().toLocaleTimeString();
+      entry.textContent = `[${timestamp}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function saveToken() {
+      const token = document.getElementById('token').value.trim();
+      if (!token) {
+        log('❌ Token vacío', 'error');
+        return;
+      }
+      localStorage.setItem('auth_token', token);
+      log('✅ Token guardado', 'success');
+    }
+
+    function getToken() {
+      return localStorage.getItem('auth_token');
+    }
+
+    async function syncEvents() {
+      const token = getToken();
+      if (!token) {
+        log('❌ No hay token configurado', 'error');
+        stopSync();
+        return;
+      }
+
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = '🔄 Sincronizando...';
+      statusEl.className = 'status syncing';
+
+      try {
+        const url = `${API_URL}/api/events/sync?lastSyncTime=${encodeURIComponent(lastSyncTime)}`;
+        log(`📡 GET ${url}`, 'info');
+
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        syncCount++;
+        eventCount = data.events.length;
+        
+        document.getElementById('syncCount').textContent = syncCount;
+        document.getElementById('eventCount').textContent = eventCount;
+        
+        if (data.hasChanges) {
+          log(`🔄 CAMBIOS DETECTADOS: ${data.events.length} eventos`, 'success');
+          document.getElementById('lastChange').textContent = new Date().toLocaleTimeString();
+          
+          // Mostrar detalles de algunos eventos
+          if (data.events.length > 0) {
+            log(`📋 Primeros eventos:`, 'info');
+            data.events.slice(0, 3).forEach(event => {
+              log(`  - ${event.title} (${event.pedido || 'sin pedido'})`, 'info');
+            });
+          }
+        } else {
+          log(`✅ No hay cambios (${data.events.length} eventos total)`, 'info');
+        }
+
+        lastSyncTime = data.serverTime;
+        
+        statusEl.textContent = '✅ Sincronizado';
+        statusEl.className = 'status idle';
+
+      } catch (error) {
+        log(`❌ Error: ${error.message}`, 'error');
+        statusEl.textContent = '❌ Error';
+        statusEl.className = 'status error';
+      }
+    }
+
+    function startSync() {
+      if (syncInterval) {
+        log('⚠️ Sync ya está activo', 'info');
+        return;
+      }
+
+      log('▶️ Iniciando sincronización automática cada 5 segundos...', 'success');
+      syncEvents(); // Primera sync inmediata
+      syncInterval = setInterval(syncEvents, 5000);
+    }
+
+    function stopSync() {
+      if (syncInterval) {
+        clearInterval(syncInterval);
+        syncInterval = null;
+        log('⏸️ Sincronización detenida', 'info');
+        document.getElementById('status').textContent = 'Detenido';
+        document.getElementById('status').className = 'status';
+      }
+    }
+
+    function manualSync() {
+      log('🔄 Sincronización manual...', 'info');
+      syncEvents();
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+      log('🗑️ Log limpiado', 'info');
+    }
+
+    // Auto-cargar token si existe
+    window.onload = function() {
+      const token = getToken();
+      if (token) {
+        document.getElementById('token').value = token;
+        log('✅ Token cargado desde localStorage', 'success');
+      }
+    };
+  </script>
+</body>
+</html>
