@@ -109,7 +109,7 @@ function App() {
               <p>Gestiona tu calendario importando datos desde Google Drive</p>
             </div>
             <div className="header-right">
-              <SyncIndicator enabled={isAuthenticated} />
+              <SyncIndicator enabled={isAuthenticated && !isAdmin} />
               <div className="user-info">
                 <span className="user-name">👤 {currentUser?.name}</span>
                 <button className="logout-button" onClick={handleLogout}>
