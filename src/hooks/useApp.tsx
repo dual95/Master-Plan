@@ -195,8 +195,19 @@ export function useAppActions() {
     addEvent: (event: CalendarEvent) =>
       dispatch({ type: 'ADD_EVENT', payload: event }),
     
-    updateEvent: (event: CalendarEvent) =>
-      dispatch({ type: 'UPDATE_EVENT', payload: event }),
+    updateEvent: async (event: CalendarEvent) => {
+      // Actualizar UI inmediatamente (Optimistic Update)
+      dispatch({ type: 'UPDATE_EVENT', payload: event });
+      
+      // Guardar al servidor INMEDIATAMENTE
+      try {
+        await apiService.updateEvent(event);
+        console.log(`✅ Evento ${event.id} guardado inmediatamente en servidor`);
+      } catch (error) {
+        console.error('❌ Error guardando evento en servidor:', error);
+        // La UI ya se actualizó, el error se manejará en la próxima sync
+      }
+    },
     
     deleteEvent: (eventId: string) =>
       dispatch({ type: 'DELETE_EVENT', payload: eventId }),

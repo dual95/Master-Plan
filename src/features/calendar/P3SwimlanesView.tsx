@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale';
 import type { CalendarEvent } from '../../types';
 import type { User } from '../../services/authService';
 import { useAppActions } from '../../hooks/useApp';
+import { markLocalChange } from '../../hooks/useSyncEvents';
 import { QuickTaskPicker } from '../../components/QuickTaskPicker';
 import { exportToLookerStudio2 } from '../../services/lookerStudioExport';
 import { driveService } from '../../services/googleDrive';
@@ -163,6 +164,9 @@ export function P3SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
       return;
     }
 
+    // Marcar que hay un cambio local para pausar sync
+    markLocalChange();
+
     // Calcular nueva fecha manteniendo la hora
     const oldDate = new Date(draggedTask.start);
     const newStart = new Date(targetDate);
@@ -200,6 +204,7 @@ export function P3SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
         isScheduled: true // Marcar como programada
       };
 
+      console.log('🎯 P3: Moviendo tarea y guardando inmediatamente al servidor');
       updateEvent(updatedEvent);
     }
     
@@ -231,6 +236,9 @@ export function P3SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     const { process, date } = quickPickerTarget;
     
     console.log(`📌 Moviendo task ${task.id} a ${process} en ${format(date, 'yyyy-MM-dd')}`);
+
+    // Marcar que hay un cambio local para pausar sync
+    markLocalChange();
 
     // Actualizar el task con el nuevo proceso y fecha
     const updatedTask: CalendarEvent = {

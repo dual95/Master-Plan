@@ -3,9 +3,23 @@ import { useApp, useAppActions } from './useApp';
 import { apiService } from '../services/apiService';
 import type { CalendarEvent } from '../types';
 
+// Variable global para controlar si hay cambios locales pendientes de guardar
+let pendingLocalChanges = false;
+let lastLocalChangeTime = 0;
+
+/**
+ * Marca que hay un cambio local pendiente (usar cuando se hace drag & drop)
+ */
+export function markLocalChange() {
+  pendingLocalChanges = true;
+  lastLocalChangeTime = Date.now();
+  console.log('🔒 Cambio local detectado - sync pausada temporalmente');
+}
+
 /**
  * Hook para sincronización automática de eventos en tiempo real
  * Polling cada 5 segundos para detectar cambios del servidor
+ * Se pausa automáticamente cuando hay cambios locales pendientes
  */
 export function useSyncEvents(enabled: boolean = true) {
   const { state } = useApp();
@@ -17,6 +31,8 @@ export function useSyncEvents(enabled: boolean = true) {
 
   // Intervalo de sincronización (5 segundos)
   const SYNC_INTERVAL = 5000;
+  // Tiempo de espera después de un cambio local antes de permitir sync (2 segundos)
+  const LOCAL_CHANGE_COOLDOWN = 2000;
 
   useEffect(() => {
     if (!enabled) return;
@@ -28,6 +44,19 @@ export function useSyncEvents(enabled: boolean = true) {
       if (isSyncing) {
         console.log('⏭️ Sync ya en progreso, saltando...');
         return;
+      }
+
+      // Si hay cambios locales pendientes recientes, esperar
+      const timeSinceLastChange = Date.now() - lastLocalChangeTime;
+      if (pendingLocalChanges && timeSinceLastChange < LOCAL_CHANGE_COOLDOWN) {
+        console.log(`⏳ Cambios locales pendientes (${timeSinceLastChange}ms), esperando ${LOCAL_CHANGE_COOLDOWN - timeSinceLastChange}ms más...`);
+        return;
+      }
+      
+      // Limpiar flag de cambios pendientes después del cooldown
+      if (pendingLocalChanges && timeSinceLastChange >= LOCAL_CHANGE_COOLDOWN) {
+        pendingLocalChanges = false;
+        console.log('🔓 Cooldown completado - reanudando sync normal');
       }
 
       setIsSyncing(true);

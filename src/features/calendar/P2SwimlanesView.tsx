@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale';
 import type { CalendarEvent } from '../../types';
 import type { User } from '../../services/authService';
 import { useAppActions } from '../../hooks/useApp';
+import { markLocalChange } from '../../hooks/useSyncEvents';
 import { exportToLookerStudio } from '../../services/lookerStudioExport';
 import { driveService } from '../../services/googleDrive';
 import { QuickTaskPicker } from '../../components/QuickTaskPicker';
@@ -142,6 +143,9 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
       return;
     }
 
+    // Marcar que hay un cambio local para pausar sync
+    markLocalChange();
+
     // Calcular nueva fecha manteniendo la hora
     const oldDate = new Date(draggedTask.start);
     const newStart = new Date(targetDate);
@@ -179,6 +183,7 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
         isScheduled: true // Marcar como programada
       };
 
+      console.log('🎯 P2: Moviendo tarea y guardando inmediatamente al servidor');
       updateEvent(updatedEvent);
     }
     
@@ -203,13 +208,15 @@ export function P2SwimlanesView({ events, onEventClick, spreadsheetId, accessTok
     }
   }, [isAdmin]);
 
-  // Handler para cuando se selecciona un task del buscador
   const handleQuickPickerSelect = useCallback((task: CalendarEvent) => {
     if (!quickPickerTarget) return;
 
     const { line, date } = quickPickerTarget;
     
     console.log(`📌 Moviendo task ${task.id} a ${line} en ${format(date, 'yyyy-MM-dd')}`);
+
+    // Marcar que hay un cambio local para pausar sync
+    markLocalChange();
 
     // Actualizar el task con la nueva línea y fecha
     const updatedTask: CalendarEvent = {
