@@ -20,8 +20,11 @@ export function markLocalChange() {
  * Hook para sincronización automática de eventos en tiempo real
  * Polling cada 5 segundos para detectar cambios del servidor
  * Se pausa automáticamente cuando hay cambios locales pendientes
+ * 
+ * @param enabled - Si está habilitado el sync
+ * @param syncMode - 'full' sincroniza todo, 'status-only' solo actualiza estados/colores (para admin)
  */
-export function useSyncEvents(enabled: boolean = true) {
+export function useSyncEvents(enabled: boolean = true, syncMode: 'full' | 'status-only' = 'full') {
   const { state } = useApp();
   const { setEvents } = useAppActions();
   const [lastSyncTime, setLastSyncTime] = useState<string>(new Date().toISOString());
@@ -69,19 +72,48 @@ export function useSyncEvents(enabled: boolean = true) {
           hasChanges: response.hasChanges,
           eventsCount: response.events.length,
           serverTime: response.serverTime,
-          isFirstSync: isFirstSyncRef.current
+          isFirstSync: isFirstSyncRef.current,
+          syncMode
         });
         
         if (response.hasChanges) {
           if (!isFirstSyncRef.current) {
-            console.log(`🔄 Sync: Detectados ${response.events.length} eventos actualizados desde servidor`);
+            console.log(`🔄 Sync (${syncMode}): Detectados ${response.events.length} eventos actualizados desde servidor`);
           }
           
-          // MERGE COMPLETO: Actualizar todos los eventos con la versión del servidor
-          // El servidor es la fuente de verdad
-          setEvents(response.events);
-          
-          console.log(`✅ Eventos actualizados: ${response.events.length} total`);
+          if (syncMode === 'status-only') {
+            // MODO ADMIN: Solo actualizar estados (real, status) manteniendo posiciones locales
+            const currentEvents = state.events;
+            const updatedEvents = currentEvents.map(localEvent => {
+              const serverEvent = response.events.find(e => e.id === localEvent.id);
+              if (serverEvent) {
+                // Actualizar SOLO campos de estado/color, mantener posición/fecha local
+                return {
+                  ...localEvent,
+                  real: serverEvent.real,
+                  status: serverEvent.status,
+                  // Actualizar otros campos de metadata que no afectan posición
+                  product: serverEvent.product,
+                  title: serverEvent.title,
+                  description: serverEvent.description,
+                };
+              }
+              return localEvent;
+            });
+            
+            // Agregar eventos nuevos que no existen localmente
+            const newEvents = response.events.filter(
+              serverEvent => !currentEvents.some(local => local.id === serverEvent.id)
+            );
+            
+            setEvents([...updatedEvents, ...newEvents]);
+            console.log(`✅ Estados actualizados (admin): ${updatedEvents.length} actualizados, ${newEvents.length} nuevos`);
+          } else {
+            // MODO COMPLETO: Actualizar todos los eventos con la versión del servidor
+            // El servidor es la fuente de verdad
+            setEvents(response.events);
+            console.log(`✅ Eventos actualizados: ${response.events.length} total`);
+          }
         } else {
           console.log('✅ No hay cambios nuevos');
         }

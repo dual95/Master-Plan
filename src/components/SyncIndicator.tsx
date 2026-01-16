@@ -5,10 +5,11 @@ import './SyncIndicator.css';
 
 interface SyncIndicatorProps {
   enabled?: boolean;
+  syncMode?: 'full' | 'status-only';
 }
 
-export function SyncIndicator({ enabled = true }: SyncIndicatorProps) {
-  const { isSyncing, lastSyncTime } = useSyncEvents(enabled);
+export function SyncIndicator({ enabled = true, syncMode = 'full' }: SyncIndicatorProps) {
+  const { isSyncing, lastSyncTime } = useSyncEvents(enabled, syncMode);
 
   if (!enabled) return null;
 
