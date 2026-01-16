@@ -185,6 +185,52 @@ app.get('/api/events', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/events/sync - Sincronización optimizada (solo cambios desde lastSyncTime)
+app.get('/api/events/sync', authenticateToken, async (req, res) => {
+  try {
+    const { lastSyncTime } = req.query;
+    
+    if (!lastSyncTime) {
+      // Si no hay lastSyncTime, retornar todos los eventos
+      const result = await pool.query('SELECT data FROM events ORDER BY updated_at DESC');
+      const events = result.rows.map(row => row.data);
+      
+      return res.json({
+        events,
+        serverTime: new Date().toISOString(),
+        hasChanges: events.length > 0
+      });
+    }
+    
+    // Buscar solo eventos modificados después de lastSyncTime
+    const result = await pool.query(
+      'SELECT data FROM events WHERE updated_at > $1 ORDER BY updated_at DESC',
+      [new Date(lastSyncTime)]
+    );
+    
+    const changedEvents = result.rows.map(row => row.data);
+    const hasChanges = changedEvents.length > 0;
+    
+    if (hasChanges) {
+      console.log(`🔄 Sync: ${changedEvents.length} eventos modificados desde ${lastSyncTime}`);
+    }
+    
+    res.json({
+      events: changedEvents,
+      serverTime: new Date().toISOString(),
+      hasChanges
+    });
+  } catch (error) {
+    console.error('Error en sincronización:', error);
+    res.status(500).json({ 
+      error: 'Error en sincronización',
+      events: [],
+      serverTime: new Date().toISOString(),
+      hasChanges: false
+    });
+  }
+});
+
 // POST /api/events - Guardar eventos (modo upsert: insertar nuevos, actualizar existentes)
 app.post('/api/events', async (req, res) => {
   try {

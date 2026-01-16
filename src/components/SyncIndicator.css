@@ -1,0 +1,65 @@
+.sync-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 0.875rem;
+}
+
+.sync-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.sync-status.syncing .sync-icon {
+  animation: spin 1s linear infinite;
+}
+
+.sync-status.idle .sync-icon {
+  animation: none;
+}
+
+.sync-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.sync-text {
+  color: #2c3e50;
+}
+
+.sync-time {
+  color: #7f8c8d;
+  font-size: 0.75rem;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sync-indicator {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+  
+  .sync-icon {
+    font-size: 0.875rem;
+  }
+  
+  .sync-time {
+    font-size: 0.7rem;
+  }
+}

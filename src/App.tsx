@@ -7,6 +7,7 @@ import { LookerExport } from './features/looker/LookerExport';
 import { SampleDataLoader } from './components/SampleDataLoader';
 import { ProductionLoader } from './components/ProductionLoader';
 import { Login } from './components/Login';
+import { SyncIndicator } from './components/SyncIndicator';
 import { authService } from './services/authService';
 import type { User } from './services/authService';
 import './App.css';
@@ -107,11 +108,14 @@ function App() {
               <h1>🗓️ Master Plan</h1>
               <p>Gestiona tu calendario importando datos desde Google Drive</p>
             </div>
-            <div className="user-info">
-              <span className="user-name">👤 {currentUser?.name}</span>
-              <button className="logout-button" onClick={handleLogout}>
-                🚪 Salir
-              </button>
+            <div className="header-right">
+              <SyncIndicator enabled={isAuthenticated} />
+              <div className="user-info">
+                <span className="user-name">👤 {currentUser?.name}</span>
+                <button className="logout-button" onClick={handleLogout}>
+                  🚪 Salir
+                </button>
+              </div>
             </div>
           </div>
           

@@ -146,5 +146,40 @@ export const apiService = {
       console.error('❌ Health check falló:', error);
       return false;
     }
+  },
+
+  /**
+   * Sincronizar eventos - obtener solo cambios desde lastSyncTime
+   */
+  async syncEvents(lastSyncTime: string): Promise<{
+    events: CalendarEvent[];
+    serverTime: string;
+    hasChanges: boolean;
+  }> {
+    try {
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/events/sync?lastSyncTime=${encodeURIComponent(lastSyncTime)}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      return {
+        events: data.events || [],
+        serverTime: data.serverTime || new Date().toISOString(),
+        hasChanges: data.hasChanges || false
+      };
+    } catch (error) {
+      console.error('❌ Error en sincronización:', error);
+      // Retornar datos vacíos en caso de error para no interrumpir la app
+      return {
+        events: [],
+        serverTime: new Date().toISOString(),
+        hasChanges: false
+      };
+    }
   }
 };
